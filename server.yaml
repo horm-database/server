@@ -1,0 +1,37 @@
+env: test                         # 环境名称，非正式环境下多环境的名称
+machine: server.access.gz003      # 机器名（容器名）
+machine_id: 3                     # 机器编号（容器编号）（主要用于 snowflake 生成全局唯一 id）
+local_ip: 127.0.0.1               # 本地IP，容器内为容器ip，物理机或虚拟机为本机 ip
+
+server:                           # 服务端配置
+  name: server.access.webapi
+  rpc_port: 8180
+  http_port: 8181
+  timeout: 100000                 # 请求最长处理时间（毫秒）
+  close_wait_time: 5000           # 注销名字服务之后的等待时间，让名字服务更新实例列表。 (单位 ms) 默认: 0ms, 最大: 10s.
+  max_close_wait_time: 10000      # 进程结束之前等待请求完成的最大等待时间。(单位 ms)
+
+register: # 注册名字服务
+  enable: false   # 是否开启北极星名字服务注册
+  version: 1.0.0  # 版本
+  ttl: 5          # ttl超时时间
+  token: CJDOSIJCJDOSIJCJDOSIJ123 # token
+  location:
+    region: 腾讯云-华南
+    zone: 广州
+    compus: 园区1
+
+log:
+  - writer: console               # 控制台标准输出 默认
+    level: debug                  # 标准输出日志的级别
+  - writer: file
+    level: debug
+    escape: true
+    file_config:
+      filename: ./server.log      # 本地文件滚动日志存放的路径
+      max_size: 100               # 本地文件滚动日志的大小 单位 MB
+      max_backups: 30             # 最大日志文件数
+      max_day: 3                  # 最大日志保留天数
+      compress: false             # 日志文件是否压缩
+
+

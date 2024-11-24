@@ -1,0 +1,48 @@
+machine: server.access.gz003      # 机器名（容器名）
+machine_id: 3                     # 机器编号（容器编号）（主要用于 snowflake 生成全局唯一 id）
+local_ip: 127.0.0.1               # 本地IP，容器内为容器ip，物理机或虚拟机为本机ip
+location:                         # 接入客户端所属区域，主要用于就近路由
+  region: 腾讯云-华南
+  zone: 广州
+  compus: 园区1
+
+server:                           # 服务端配置
+  - workspace_id: 31              # workspace id
+    encryption: 1                 # 帧签名方式 0-无（默认）1-签名 2-加密（针对 Android、IOS 等外网非安全客户端）
+    token: QUIs32ODQUIs32OD       # workspace token
+    target: ip://127.0.0.1:8180   # workspace 地址
+    timeout: 30000                # 接口调用超时时间（毫秒）
+    caller:                       # 调用方信息
+      - name: app.server.service1 # 调用方名称
+        appid: 10002              # 调用方 appid
+        secret: S959223456        # 调用方秘钥
+        timeout: 1000             # 超时时间
+      - name: app.server.service2 # 调用方名称
+        appid: 10003              # 调用方 appid
+        secret: S499721834        # 调用方秘钥
+        timeout: 2000             # 超时时间
+
+db:                               # 本地数据库配置（用于 orm）
+  - name: mysql.local.server       # 数据库名称
+    type: mysql                   # 数据库类型 elastic redis mysql postgresql clickhouse
+    address: dsn://root:cao8848524@tcp(127.0.0.1:3306)/proxy?timeout=100s&parseTime=true&charset=utf8&loc=Local
+    write_timeout: 30000000
+    read_timeout: 30000000
+  - name: redis.local.server       # 数据库名称
+    type: redis                   # 数据库类型 elastic redis mysql postgresql clickhouse
+    address: dsn://127.0.0.1:6379
+    write_timeout: 30000000
+    read_timeout: 30000000
+
+log:
+  - writer: console               # 控制台标准输出 默认
+    level: debug                  # 标准输出日志的级别
+  - writer: file
+    level: debug
+    escape: true
+    file_config:
+      filename: ./server.log              # 本地文件滚动日志存放的路径
+      max_size: 100                      # 本地文件滚动日志的大小 单位 MB
+      max_backups: 30                    # 最大日志文件数
+      max_day: 3                         # 最大日志保留天数
+      compress: false                    # 日志文件是否压缩

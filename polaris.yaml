@@ -1,0 +1,16 @@
+global:
+  api:
+    timeout: 1s         # api超时时间，默认 1s
+    maxRetryTimes: 5    # API因为网络原因调用失败后的重试次数，默认 5
+    retryInterval: 1s   # 重试间隔，默认 1s
+  serverConnector:
+    addresses:
+      - 127.0.0.1:8091
+  statReporter:
+    enable: true
+    chain:
+      - prometheus
+    plugin:
+      prometheus:
+        type: pull
+        metricPort: 0
