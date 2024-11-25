@@ -2,12 +2,6 @@ module github.com/horm-database/server
 
 go 1.19
 
-replace github.com/horm-database/go-horm/horm => ../go-horm/horm
-
-replace github.com/horm-database/common => ../common
-
-replace github.com/horm-database/orm => ../orm
-
 require (
 	github.com/go-sql-driver/mysql v1.7.1 // indirect
 	github.com/golang/protobuf v1.5.3
@@ -72,9 +66,9 @@ require (
 require (
 	github.com/barkimedes/go-deepcopy v0.0.0-20220514131651-17c30cfc62df
 	github.com/evanphx/wildcat v0.0.0-20141114174135-e7012f664567
-	github.com/horm-database/common v0.0.0-00010101000000-000000000000
-	github.com/horm-database/go-horm/horm v0.0.0-00010101000000-000000000000
-	github.com/horm-database/orm v0.0.0-00010101000000-000000000000
+	github.com/horm-database/common v0.0.1
+	github.com/horm-database/go-horm/horm v0.0.2
+	github.com/horm-database/orm v0.0.2
 	github.com/panjf2000/gnet/v2 v2.2.9
 	github.com/polarismesh/polaris-go v1.5.3
 	github.com/robfig/cron v1.2.0
