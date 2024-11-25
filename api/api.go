@@ -4,7 +4,7 @@
 package api
 
 import (
-	"github.com/horm/server/srv"
+	"github.com/horm-database/server/srv"
 )
 
 /* *************** Api Definition *************** */

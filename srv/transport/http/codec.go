@@ -9,14 +9,14 @@ import (
 	"time"
 
 	"github.com/evanphx/wildcat"
-	cc "github.com/horm/common/codec"
-	"github.com/horm/common/consts"
-	"github.com/horm/common/errs"
-	"github.com/horm/common/proto"
-	"github.com/horm/common/types"
-	"github.com/horm/common/util"
-	"github.com/horm/server/srv/codec"
-	"github.com/horm/server/srv/transport"
+	cc "github.com/horm-database/common/codec"
+	"github.com/horm-database/common/consts"
+	"github.com/horm-database/common/errs"
+	"github.com/horm-database/common/proto"
+	"github.com/horm-database/common/types"
+	"github.com/horm-database/common/util"
+	"github.com/horm-database/server/srv/codec"
+	"github.com/horm-database/server/srv/transport"
 )
 
 var (

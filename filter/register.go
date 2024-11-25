@@ -1,8 +1,8 @@
 package filter
 
 import (
-	"github.com/horm/server/filter/official/cache"
-	"github.com/horm/server/filter/official/uniquekey"
+	"github.com/horm-database/server/filter/official/cache"
+	"github.com/horm-database/server/filter/official/uniquekey"
 )
 
 // Register 注册插件函数

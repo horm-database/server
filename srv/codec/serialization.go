@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/horm/common/codec"
+	"github.com/horm-database/common/codec"
 )
 
 // Serializer defines body serialization interface.

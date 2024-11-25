@@ -3,7 +3,7 @@ package codec
 import (
 	"fmt"
 
-	"github.com/horm/common/types"
+	"github.com/horm-database/common/types"
 )
 
 func init() {

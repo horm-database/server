@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/horm/common/errs"
-	"github.com/horm/common/types"
+	"github.com/horm-database/common/errs"
+	"github.com/horm-database/common/types"
 )
 
 type FilterConfig map[string]interface{}

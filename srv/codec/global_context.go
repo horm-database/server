@@ -3,8 +3,8 @@ package codec
 import (
 	"context"
 
-	"github.com/horm/common/codec"
-	"github.com/horm/common/log/logger"
+	"github.com/horm-database/common/codec"
+	"github.com/horm-database/common/log/logger"
 )
 
 var (

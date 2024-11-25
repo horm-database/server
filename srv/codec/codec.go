@@ -3,8 +3,8 @@
 package codec
 
 import (
-	"github.com/horm/common/codec"
-	"github.com/horm/common/proto"
+	"github.com/horm-database/common/codec"
+	"github.com/horm-database/common/proto"
 )
 
 // Codec defines the interface of business communication protocol,

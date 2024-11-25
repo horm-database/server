@@ -9,13 +9,13 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/horm/common/log/logger"
-	"github.com/horm/common/util"
-	"github.com/horm/server/srv/codec"
-	"github.com/horm/server/srv/naming"
-	"github.com/horm/server/srv/transport"
-	"github.com/horm/server/srv/transport/http"
-	"github.com/horm/server/srv/transport/rpc"
+	"github.com/horm-database/common/log/logger"
+	"github.com/horm-database/common/util"
+	"github.com/horm-database/server/srv/codec"
+	"github.com/horm-database/server/srv/naming"
+	"github.com/horm-database/server/srv/transport"
+	"github.com/horm-database/server/srv/transport/http"
+	"github.com/horm-database/server/srv/transport/rpc"
 	"go.uber.org/automaxprocs/maxprocs"
 )
 
@@ -59,7 +59,6 @@ func NewServer(serverDesc *Description) *Server {
 	if cfg.Server.HttpPort > 0 {
 		httpServiceName := "http." + cfg.Server.Name
 		s.addService(httpServiceName, newService(httpServiceName, "http", cfg))
-
 	}
 
 	if cfg.Server.WebPort > 0 {

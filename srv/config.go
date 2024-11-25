@@ -5,8 +5,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/horm/common/log/logger"
-	"github.com/horm/server/srv/naming"
+	"github.com/horm-database/common/log/logger"
+	"github.com/horm-database/server/srv/naming"
 	"gopkg.in/yaml.v3"
 )
 

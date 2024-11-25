@@ -5,16 +5,16 @@ import (
 	"reflect"
 	"strings"
 
-	cc "github.com/horm/common/consts"
-	"github.com/horm/common/errs"
-	"github.com/horm/common/proto"
-	"github.com/horm/common/proto/filter"
-	"github.com/horm/common/types"
-	ut "github.com/horm/common/util"
-	"github.com/horm/orm/obj"
-	"github.com/horm/server/consts"
-	"github.com/horm/server/model/table"
-	"github.com/horm/server/util"
+	cc "github.com/horm-database/common/consts"
+	"github.com/horm-database/common/errs"
+	"github.com/horm-database/common/proto"
+	"github.com/horm-database/common/proto/filter"
+	"github.com/horm-database/common/types"
+	ut "github.com/horm-database/common/util"
+	"github.com/horm-database/orm/obj"
+	"github.com/horm-database/server/consts"
+	"github.com/horm-database/server/model/table"
+	"github.com/horm-database/server/util"
 )
 
 // Parse 请求解析

@@ -1,7 +1,7 @@
 package codec
 
 import (
-	"github.com/horm/common/json"
+	"github.com/horm-database/common/json"
 )
 
 func init() {

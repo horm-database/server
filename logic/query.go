@@ -5,22 +5,22 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/horm/common/codec"
-	cc "github.com/horm/common/consts"
-	"github.com/horm/common/errs"
-	"github.com/horm/common/json"
-	"github.com/horm/common/log"
-	"github.com/horm/common/proto"
-	pf "github.com/horm/common/proto/filter"
-	"github.com/horm/common/types"
-	"github.com/horm/common/util"
-	"github.com/horm/orm/database"
-	"github.com/horm/orm/obj"
-	"github.com/horm/server/auth"
-	"github.com/horm/server/consts"
-	"github.com/horm/server/filter"
-	"github.com/horm/server/model/table"
-	ut "github.com/horm/server/util"
+	"github.com/horm-database/common/codec"
+	cc "github.com/horm-database/common/consts"
+	"github.com/horm-database/common/errs"
+	"github.com/horm-database/common/json"
+	"github.com/horm-database/common/log"
+	"github.com/horm-database/common/proto"
+	pf "github.com/horm-database/common/proto/filter"
+	"github.com/horm-database/common/types"
+	"github.com/horm-database/common/util"
+	"github.com/horm-database/orm/database"
+	"github.com/horm-database/orm/obj"
+	"github.com/horm-database/server/auth"
+	"github.com/horm-database/server/consts"
+	"github.com/horm-database/server/filter"
+	"github.com/horm-database/server/model/table"
+	ut "github.com/horm-database/server/util"
 
 	"github.com/barkimedes/go-deepcopy"
 )
@@ -216,6 +216,10 @@ func filtersHandle(ctx context.Context, req *pf.Request, resp *pf.Response, appi
 func deferFiltersHandle(ctx context.Context,
 	req *pf.Request, resp *pf.Response, appid uint64, extend types.Map, tblTable *obj.TblTable) {
 	tableFilters := table.GetTableFilters(tblTable.Id, consts.DeferFilter)
+
+	if tableFilters == nil {
+		return
+	}
 
 	for _, tableFilter := range tableFilters {
 		tblFilter := table.GetFilter(tableFilter.FilterId)

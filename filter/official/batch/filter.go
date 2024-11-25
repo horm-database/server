@@ -3,10 +3,10 @@ package batch
 import (
 	"context"
 
-	"github.com/horm/common/consts"
-	"github.com/horm/common/proto/filter"
-	"github.com/horm/orm/obj"
-	"github.com/horm/server/srv/codec"
+	"github.com/horm-database/common/consts"
+	"github.com/horm-database/common/proto/filter"
+	"github.com/horm-database/orm/obj"
+	"github.com/horm-database/server/srv/codec"
 )
 
 // Filter 表的唯一键生成插件

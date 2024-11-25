@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/horm/common/snowflake"
-	"github.com/horm/go-horm/horm"
-	"github.com/horm/orm"
-	"github.com/horm/orm/obj"
-	"github.com/horm/server/consts"
-	"github.com/horm/server/model/table"
+	"github.com/horm-database/common/snowflake"
+	"github.com/horm-database/go-horm/horm"
+	"github.com/horm-database/orm"
+	"github.com/horm-database/orm/obj"
+	"github.com/horm-database/server/consts"
+	"github.com/horm-database/server/model/table"
 )
 
 var SyncTime time.Time
@@ -42,7 +42,6 @@ func initWorkspace(ctx context.Context) {
 	}
 
 	table.SetWorkspace(&workspace)
-
 }
 
 // 初始化数据库配置表到 body

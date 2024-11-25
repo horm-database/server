@@ -3,9 +3,9 @@ package util
 import (
 	"context"
 
-	"github.com/horm/common/errs"
-	"github.com/horm/common/log"
-	"github.com/horm/common/proto"
+	"github.com/horm-database/common/errs"
+	"github.com/horm-database/common/log"
+	"github.com/horm-database/common/proto"
 )
 
 func ErrorToRspError(err error) *proto.Error {

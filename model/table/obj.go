@@ -3,7 +3,7 @@ package table
 import (
 	"time"
 
-	"github.com/horm/server/filter/conf"
+	"github.com/horm-database/server/filter/conf"
 )
 
 type TblWorkspace struct {

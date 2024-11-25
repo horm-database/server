@@ -5,12 +5,12 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/horm/common/codec"
-	"github.com/horm/common/errs"
-	cp "github.com/horm/common/proto"
-	"github.com/horm/common/util"
-	cc "github.com/horm/server/srv/codec"
-	"github.com/horm/server/srv/transport"
+	"github.com/horm-database/common/codec"
+	"github.com/horm-database/common/errs"
+	cp "github.com/horm-database/common/proto"
+	"github.com/horm-database/common/util"
+	cc "github.com/horm-database/server/srv/codec"
+	"github.com/horm-database/server/srv/transport"
 )
 
 var (

@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/horm/common/log/logger"
+	"github.com/horm-database/common/log/logger"
 )
 
 // DefaultServerCloseSIG are signals that close server.

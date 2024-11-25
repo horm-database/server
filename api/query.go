@@ -3,13 +3,13 @@ package api
 import (
 	"context"
 
-	"github.com/horm/common/compress"
-	"github.com/horm/common/consts"
-	"github.com/horm/common/errs"
-	"github.com/horm/common/proto"
-	"github.com/horm/server/auth"
-	"github.com/horm/server/logic"
-	"github.com/horm/server/srv/codec"
+	"github.com/horm-database/common/compress"
+	"github.com/horm-database/common/consts"
+	"github.com/horm-database/common/errs"
+	"github.com/horm-database/common/proto"
+	"github.com/horm-database/server/auth"
+	"github.com/horm-database/server/logic"
+	"github.com/horm-database/server/srv/codec"
 )
 
 // Query data query api
@@ -19,7 +19,6 @@ func Query(ctx context.Context, head *proto.RequestHeader, reqBuf []byte) (inter
 	}
 
 	var err error
-
 	if head.Compress == consts.Compression {
 		reqBuf, err = compress.Decompress(reqBuf)
 		if err != nil {

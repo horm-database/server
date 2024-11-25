@@ -3,11 +3,11 @@ package uniquekey
 import (
 	"context"
 
-	"github.com/horm/common/consts"
-	"github.com/horm/common/proto/filter"
-	"github.com/horm/common/snowflake"
-	"github.com/horm/common/types"
-	"github.com/horm/server/filter/conf"
+	"github.com/horm-database/common/consts"
+	"github.com/horm-database/common/proto/filter"
+	"github.com/horm-database/common/snowflake"
+	"github.com/horm-database/common/types"
+	"github.com/horm-database/server/filter/conf"
 )
 
 // Filter 表主键生成插件

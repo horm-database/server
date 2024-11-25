@@ -1,11 +1,11 @@
 package auth
 
 import (
-	cc "github.com/horm/common/consts"
-	"github.com/horm/common/errs"
-	"github.com/horm/orm/obj"
-	"github.com/horm/server/consts"
-	"github.com/horm/server/model/table"
+	cc "github.com/horm-database/common/consts"
+	"github.com/horm-database/common/errs"
+	"github.com/horm-database/orm/obj"
+	"github.com/horm-database/server/consts"
+	"github.com/horm-database/server/model/table"
 )
 
 // PermissionCheck 权限校验，appid 是否拥有对应的操作权限

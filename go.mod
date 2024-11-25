@@ -1,12 +1,12 @@
-module github.com/horm/server
+module github.com/horm-database/server
 
 go 1.19
 
-replace github.com/horm/go-horm/horm => ../go-horm/horm
+replace github.com/horm-database/go-horm/horm => ../go-horm/horm
 
-replace github.com/horm/common => ../common
+replace github.com/horm-database/common => ../common
 
-replace github.com/horm/orm => ../orm
+replace github.com/horm-database/orm => ../orm
 
 require (
 	github.com/go-sql-driver/mysql v1.7.1 // indirect
@@ -17,8 +17,8 @@ require (
 	github.com/olivere/elastic v6.2.37+incompatible // indirect
 	github.com/panjf2000/ants/v2 v2.7.3 // indirect
 	go.uber.org/automaxprocs v1.4.0
-	golang.org/x/net v0.7.0 // indirect
-	golang.org/x/sys v0.8.0 // indirect
+	golang.org/x/net v0.25.0 // indirect
+	golang.org/x/sys v0.20.0 // indirect
 	google.golang.org/genproto v0.0.0-20221014213838-99cd37c6964a // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1
@@ -53,15 +53,17 @@ require (
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
+	github.com/samber/lo v1.47.0 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
+	github.com/spf13/cast v1.7.0 // indirect
 	github.com/vektra/errors v0.0.0-20140903201135-c64d83aba85a // indirect
 	go.opentelemetry.io/otel v1.17.0 // indirect
 	go.opentelemetry.io/otel/trace v1.17.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.25.0 // indirect
-	golang.org/x/text v0.7.0 // indirect
+	golang.org/x/text v0.16.0 // indirect
 	google.golang.org/grpc v1.51.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
@@ -70,11 +72,10 @@ require (
 require (
 	github.com/barkimedes/go-deepcopy v0.0.0-20220514131651-17c30cfc62df
 	github.com/evanphx/wildcat v0.0.0-20141114174135-e7012f664567
-	github.com/horm/common v0.0.0-00010101000000-000000000000
-	github.com/horm/go-horm/horm v0.0.0-00010101000000-000000000000
-	github.com/horm/orm v0.0.0-00010101000000-000000000000
+	github.com/horm-database/common v0.0.0-00010101000000-000000000000
+	github.com/horm-database/go-horm/horm v0.0.0-00010101000000-000000000000
+	github.com/horm-database/orm v0.0.0-00010101000000-000000000000
 	github.com/panjf2000/gnet/v2 v2.2.9
 	github.com/polarismesh/polaris-go v1.5.3
 	github.com/robfig/cron v1.2.0
-	github.com/yuin/gopher-lua v1.1.0
 )

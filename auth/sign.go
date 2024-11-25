@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/horm/common/crypto"
-	"github.com/horm/common/proto"
-	"github.com/horm/server/model/table"
+	"github.com/horm-database/common/crypto"
+	"github.com/horm-database/common/proto"
+	"github.com/horm-database/server/model/table"
 )
 
 var SameRequestLock = new(sync.RWMutex)
@@ -20,7 +20,7 @@ func init() {
 			SameRequestLock.Lock()
 			SameRequest = map[string]bool{}
 			SameRequestLock.Unlock()
-			time.Sleep(time.Duration(30+rand.Intn(30)) * time.Second) // 0.5~1 分钟清空一次
+			time.Sleep(time.Duration(15+rand.Intn(15)) * time.Second) // 15 ~ 30 S清空一次
 		}
 	}()
 }

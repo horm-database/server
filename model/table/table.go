@@ -6,14 +6,14 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/horm/common/errs"
-	"github.com/horm/common/json"
-	"github.com/horm/common/log"
-	"github.com/horm/common/types"
-	"github.com/horm/common/util"
-	"github.com/horm/orm/obj"
-	"github.com/horm/server/consts"
-	sc "github.com/horm/server/srv/codec"
+	"github.com/horm-database/common/errs"
+	"github.com/horm-database/common/json"
+	"github.com/horm-database/common/log"
+	"github.com/horm-database/common/util"
+	"github.com/horm-database/orm/obj"
+	"github.com/horm-database/server/consts"
+	"github.com/horm-database/server/filter/conf"
+	sc "github.com/horm-database/server/srv/codec"
 )
 
 var (
@@ -140,6 +140,7 @@ func SetDB(db *obj.TblDB) {
 		Type:    db.Type,
 		Version: db.Version,
 		Network: db.Network,
+		Address: db.Address,
 
 		WriteTimeout: db.WriteTimeoutTmp,
 		ReadTimeout:  db.ReadTimeoutTmp,
@@ -224,6 +225,15 @@ func InitTableFilter(tableFitlers []*TblTableFilter) error {
 
 	for _, tf := range tableFitlers {
 		tf.Conf = getFilterConfig(tf.FilterId, tf.FilterVersion, tf.Config)
+		tf.ScheduleConf = &conf.ScheduleConfig{}
+		if tf.ScheduleConfig != "" {
+			err := json.Api.Unmarshal([]byte(tf.ScheduleConfig), &tf.ScheduleConf)
+			if err != nil {
+				log.Errorf(sc.GCtx, errs.RetFilterConfigDecode,
+					"unmarshal filter schedule config error=[%v], filter_id=[%d], filter_version=[%d], schedule_config=[%s]",
+					err, tf.FilterId, tf.FilterVersion, tf.ScheduleConfig)
+			}
+		}
 
 		switch tf.Type {
 		case consts.PreFilter:
@@ -333,7 +343,7 @@ func getFilterConfig(filterID, filterVersion int, config string) map[string]inte
 		return result
 	}
 
-	err := json.Api.Unmarshal(types.StringToBytes(config), &result)
+	err := json.Api.Unmarshal([]byte(config), &result)
 	if err != nil {
 		log.Errorf(sc.GCtx, errs.RetFilterConfigDecode,
 			"unmarshal filter config error=[%v], filter_id=[%d], filter_version=[%d], config=[%s]",

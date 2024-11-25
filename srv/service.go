@@ -7,17 +7,17 @@ import (
 	"sync/atomic"
 	"time"
 
-	cc "github.com/horm/common/codec"
-	"github.com/horm/common/errs"
-	"github.com/horm/common/json"
-	"github.com/horm/common/log"
-	"github.com/horm/common/log/logger"
-	"github.com/horm/common/metrics"
-	"github.com/horm/common/proto"
-	"github.com/horm/common/types"
-	"github.com/horm/server/srv/codec"
-	"github.com/horm/server/srv/naming"
-	"github.com/horm/server/srv/transport"
+	cc "github.com/horm-database/common/codec"
+	"github.com/horm-database/common/errs"
+	"github.com/horm-database/common/json"
+	"github.com/horm-database/common/log"
+	"github.com/horm-database/common/log/logger"
+	"github.com/horm-database/common/metrics"
+	"github.com/horm-database/common/proto"
+	"github.com/horm-database/common/types"
+	"github.com/horm-database/server/srv/codec"
+	"github.com/horm-database/server/srv/naming"
+	"github.com/horm-database/server/srv/transport"
 )
 
 // Service is the interface that provides services.

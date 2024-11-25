@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/horm/common/compress"
-	"github.com/horm/common/consts"
-	"github.com/horm/common/proto"
-	"github.com/horm/common/proto/filter"
-	"github.com/horm/common/types"
-	"github.com/horm/orm"
-	"github.com/horm/server/filter/conf"
+	"github.com/horm-database/common/compress"
+	"github.com/horm-database/common/consts"
+	"github.com/horm-database/common/proto"
+	"github.com/horm-database/common/proto/filter"
+	"github.com/horm-database/common/types"
+	"github.com/horm-database/orm"
+	"github.com/horm-database/server/filter/conf"
 )
 
 type CacheData struct {

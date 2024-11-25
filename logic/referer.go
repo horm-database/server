@@ -6,11 +6,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/horm/common/errs"
-	"github.com/horm/common/proto"
-	"github.com/horm/common/types"
-	"github.com/horm/common/util"
-	"github.com/horm/orm/obj"
+	"github.com/horm-database/common/errs"
+	"github.com/horm-database/common/proto"
+	"github.com/horm-database/common/types"
+	"github.com/horm-database/common/util"
+	"github.com/horm-database/orm/obj"
 )
 
 // 将引用替换为具体的值
