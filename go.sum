@@ -357,10 +357,10 @@ github.com/hashicorp/golang-lru v0.5.0/go.mod h1:/m3WP610KZHVQ1SGc6re/UDhFvYD7pJ
 github.com/hashicorp/golang-lru v0.5.1/go.mod h1:/m3WP610KZHVQ1SGc6re/UDhFvYD7pJ4Ao+sR/qLZy8=
 github.com/horm-database/common v0.0.1 h1:5VSLOm6U9h7i1QdSBLXtu7KWrqiLR1uFpQgMIBXvTKM=
 github.com/horm-database/common v0.0.1/go.mod h1:E6VcKxbHatp962Fl2jFYvgwWH9a3ujKLC5nJlt46yPE=
-github.com/horm-database/go-horm/horm v0.0.2 h1:W153H17+ttLUt0VBpjilfkZpdIyGNbdCKfcvnVt5Uos=
-github.com/horm-database/go-horm/horm v0.0.2/go.mod h1:ZIZdtOVc6hDp2xn9L4oqJB3FmKnBN7R/gISaKYYbcK8=
-github.com/horm-database/orm v0.0.2 h1:UmayXp3G2Lauv19dPBoqlCXMVwZkHp/CrlfMqmWCJ9Q=
-github.com/horm-database/orm v0.0.2/go.mod h1:iVNuVIBSyGebsx9U+bD+S9gAhq9Zl4vdoreMy7fGc8A=
+github.com/horm-database/go-horm/horm v0.0.1 h1:T9gDt7nI2IrYYdVRxTYe8qUU5p7+LTsdY65Xc7e6i78=
+github.com/horm-database/go-horm/horm v0.0.1/go.mod h1:2u6yQxNvQy0kcRv3YN3FSLusVlrDIjLQ5sc+csRSAGA=
+github.com/horm-database/orm v0.0.1 h1:vqbsQmZAcVunBTIZhJeWmu/nrPW2NQvC6q3Uh56tVKc=
+github.com/horm-database/orm v0.0.1/go.mod h1:mGF3zTTdpTX4TVkXAfZ1iWd7hl7IyZR0giXcscnt74E=
 github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
 github.com/ianlancetaylor/demangle v0.0.0-20200824232613-28f6c0f3b639/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
 github.com/josharian/intern v1.0.0 h1:vlS4z54oSdjm0bgjRigI+G1HpF+tI+9rE5LLzOg8HmY=
