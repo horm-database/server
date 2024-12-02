@@ -1,0 +1,4 @@
+- name: cache                        #数据库名称
+  type: redis                         #数据库类型 elastic redis mysql postgresql clickhouse
+  address: ip://127.0.0.1:6379
+  timeout: 30000000
