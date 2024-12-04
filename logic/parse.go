@@ -283,8 +283,8 @@ func finishTrans(node *obj.Tree) {
 func parseResult(node *obj.Tree) (bool, interface{}, error) {
 	if !node.IsSuccess() {
 		msg := errs.Msg(node.Error)
-		if len(msg) > 20000 { //返回太长，截断
-			node.Error = errs.SetErrorMsg(node.Error, msg[0:20000])
+		if len(msg) > 5000 { //返回太长，截断
+			node.Error = errs.SetErrorMsg(node.Error, msg[0:5000])
 		}
 
 		return false, nil, node.Error
