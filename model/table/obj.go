@@ -3,7 +3,7 @@ package table
 import (
 	"time"
 
-	"github.com/horm-database/server/filter/conf"
+	"github.com/horm-database/server/plugin/conf"
 )
 
 type TblWorkspace struct {
@@ -59,13 +59,13 @@ type TblAccessTable struct {
 	UpdatedAt time.Time `orm:"updated_at,datetime,omitempty" json:"updated_at"`         // 记录最后修改时间
 }
 
-type TblFilter struct {
+type TblPlugin struct {
 	Id           int       `orm:"id,int,omitempty" json:"id"`
 	Name         string    `orm:"name,string" json:"name"`                           // 插件名称
 	Intro        string    `orm:"intro,string" json:"intro"`                         // 中文简介
 	Version      string    `orm:"version,string" json:"version"`                     // 所有支持的插件版本，逗号分开
-	Func         string    `orm:"func,string" json:"func"`                           // 插件注册函数
-	SupportTypes string    `orm:"support_types,string" json:"support_types"`         // 支持的过滤器类型 1-前置过滤器 2-后置过滤器 3-defer 过滤器，多个逗号分隔，空串为全部支持
+	Func         string    `orm:"func,string" json:"func"`                           // 插件注册函数名
+	SupportTypes string    `orm:"support_types,string" json:"support_types"`         // 支持的插件类型 1-前置插件 2-后置插件 3-defer 插件，多个逗号分隔，空串为全部支持
 	Online       int8      `orm:"online,int8" json:"online"`                         // 状态 1-上线 2-下线
 	Source       int8      `orm:"source,int8" json:"source"`                         // 来源：1-官方插件 2-第三方插件 3-个人插件
 	Desc         string    `orm:"desc,string" json:"desc"`                           // 详细介绍
@@ -75,10 +75,10 @@ type TblFilter struct {
 	UpdatedAt    time.Time `orm:"updated_at,datetime,omitempty" json:"updated_at"`   // 记录最后修改时间
 }
 
-type TblFilterConfig struct {
+type TblPluginConfig struct {
 	Id            int       `orm:"id,int,omitempty" json:"id"`
-	FilterID      int       `orm:"filter_id,int" json:"filter_id"`                  // 插件id
-	FilterVersion int       `orm:"filter_version,int" json:"filter_version"`        // filter 版本
+	PluginID      int       `orm:"plugin_id,int" json:"plugin_id"`                  // 插件id
+	PluginVersion int       `orm:"plugin_version,int" json:"plugin_version"`        // 插件版本
 	Key           string    `orm:"key,string" json:"key"`                           // 插件配置 key
 	Name          string    `orm:"name,string" json:"name"`                         // 插件配置名
 	Type          int8      `orm:"type,int8" json:"type"`                           // 配置类型 1-bool、2-string、3-int、4-uint、5-float、6-枚举 7-时间、8-array、9-map、10-multi-conf
@@ -90,13 +90,13 @@ type TblFilterConfig struct {
 	UpdatedAt     time.Time `orm:"updated_at,datetime,omitempty" json:"updated_at"` // 记录最后修改时间
 }
 
-type TblTableFilter struct {
+type TblTablePlugin struct {
 	Id             int       `orm:"id,int,omitempty" json:"id"`
 	TableId        int       `orm:"table_id,int" json:"table_id"`                    // 表id
-	FilterId       int       `orm:"filter_id,int" json:"filter_id"`                  // 插件id
-	FilterVersion  int       `orm:"filter_version,int" json:"filter_version"`        // filter 版本
-	Type           int8      `orm:"type,int8" json:"type"`                           // 过滤器类型 1-前置过滤器 2-后置过滤器 3-defer 过滤器
-	Front          int       `orm:"front,int" json:"front"`                          // filter execute front of me
+	PluginID       int       `orm:"plugin_id,int" json:"plugin_id"`                  // 插件id
+	PluginVersion  int       `orm:"plugin_version,int" json:"plugin_version"`        // 插件版本
+	Type           int8      `orm:"type,int8" json:"type"`                           // 插件类型 1-前置插件 2-后置插件 3-defer 插件
+	Front          int       `orm:"front,int" json:"front"`                          // plugin execute front of me
 	ScheduleConfig string    `orm:"schedule_config,string" json:"schedule_config"`   // 插件调度配置，是一个json，内容是 map[string]interface{}
 	Config         string    `orm:"config,string" json:"config"`                     // 插件配置，是一个json，内容是 map[string]interface{}
 	Desc           string    `orm:"desc,string" json:"desc"`                         // 描述
@@ -105,5 +105,5 @@ type TblTableFilter struct {
 	UpdatedAt      time.Time `orm:"updated_at,datetime,omitempty" json:"updated_at"` // 记录最后修改时间
 
 	ScheduleConf *conf.ScheduleConfig // 调度规则
-	Conf         conf.FilterConfig    // 解析后的配置
+	Conf         conf.PluginConfig    // 解析后的配置
 }

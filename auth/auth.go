@@ -100,7 +100,7 @@ func TableVerify(source *obj.Tree, appid uint64, tables []string, verifyRule str
 
 func recheck(recheck bool) string {
 	if recheck {
-		return " recheck after filter -"
+		return " recheck after plugin execute -"
 	}
 	return ""
 }

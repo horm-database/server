@@ -8,7 +8,7 @@ import (
 	cc "github.com/horm-database/common/consts"
 	"github.com/horm-database/common/errs"
 	"github.com/horm-database/common/proto"
-	"github.com/horm-database/common/proto/filter"
+	"github.com/horm-database/common/proto/plugin"
 	"github.com/horm-database/common/types"
 	ut "github.com/horm-database/common/util"
 	"github.com/horm-database/orm/obj"
@@ -401,7 +401,7 @@ func InitTree(node *obj.Tree, unit *proto.Unit, requestHeader *proto.RequestHead
 	}
 
 	if requestHeader != nil {
-		unit.Extend["request_header"] = &filter.Header{
+		unit.Extend["request_header"] = &plugin.Header{
 			RequestId: requestHeader.RequestId,
 			TraceId:   requestHeader.TraceId,
 			Timestamp: requestHeader.Timestamp,

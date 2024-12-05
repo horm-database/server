@@ -4,15 +4,15 @@ import (
 	"context"
 
 	"github.com/horm-database/common/consts"
-	"github.com/horm-database/common/proto/filter"
+	"github.com/horm-database/common/proto/plugin"
 	"github.com/horm-database/orm/obj"
 	"github.com/horm-database/server/srv/codec"
 )
 
-// Filter 表的唯一键生成插件
-type Filter struct{}
+// Plugin 表的唯一键生成插件
+type Plugin struct{}
 
-func (ft *Filter) Handle(ctx context.Context, req *filter.Request, resp *filter.Response,
+func (ft *Plugin) Handle(ctx context.Context, req *plugin.Request, resp *plugin.Response,
 	dbConf obj.TblDB, tableConf obj.TblTable, config map[string]interface{}) error {
 	batchFlush, ok1 := config["batch_flush"].(int)
 	batchNum, ok2 := config["batch_num"].(int)

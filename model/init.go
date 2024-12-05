@@ -24,7 +24,7 @@ func Init(ctx context.Context, machineID int) {
 	initDBConfig(ctx)
 	initTableConfig(ctx)
 	initAppInfo(ctx)
-	initFilter(ctx)
+	initPlugin(ctx)
 }
 
 // 初始化 workspace 信息
@@ -127,34 +127,34 @@ func initAppInfo(ctx context.Context) {
 }
 
 // 初始化插件
-func initFilter(ctx context.Context) {
-	filter := make([]*table.TblFilter, 0)
-	tableFilter := make([]*table.TblTableFilter, 0)
+func initPlugin(ctx context.Context) {
+	plugin := make([]*table.TblPlugin, 0)
+	tablePlugin := make([]*table.TblTablePlugin, 0)
 
 	c := orm.NewORM(consts.DBConfigName)
 
-	_, err := c.Name("tbl_filter").FindAll().Exec(ctx, &filter)
+	_, err := c.Name("tbl_plugin").FindAll().Exec(ctx, &plugin)
 	if err != nil {
-		panic(fmt.Errorf("init tbl_filter from db error: %s", err))
+		panic(fmt.Errorf("init tbl_plugin from db error: %s", err))
 	}
 
-	if len(filter) == 0 {
+	if len(plugin) == 0 {
 		return
 	}
 
-	_, err = c.Name("tbl_table_filter").FindAll().Exec(ctx, &tableFilter)
+	_, err = c.Name("tbl_table_plugin").FindAll().Exec(ctx, &tablePlugin)
 	if err != nil {
-		panic(fmt.Errorf("init tbl_table_filter from db error: %s", err))
+		panic(fmt.Errorf("init tbl_table_plugin from db error: %s", err))
 	}
 
-	for _, f := range filter {
-		table.SetFilter(f)
+	for _, f := range plugin {
+		table.SetPlugin(f)
 	}
 
-	if len(tableFilter) > 0 {
-		err = table.InitTableFilter(tableFilter)
+	if len(tablePlugin) > 0 {
+		err = table.InitTablePlugin(tablePlugin)
 		if err != nil {
-			panic(fmt.Errorf("init tbl_table_filter error: %s", err))
+			panic(fmt.Errorf("init tbl_table_plugin error: %s", err))
 		}
 	}
 }
@@ -164,7 +164,7 @@ func SyncDbNewToLocal(ctx context.Context) {
 	now := time.Now()
 
 	syncDbNewToLocal(ctx, now)
-	syncFilterToLocal(ctx, now)
+	syncPluginToLocal(ctx, now)
 }
 
 func syncDbNewToLocal(ctx context.Context, now time.Time) {
@@ -190,7 +190,7 @@ func syncDbNewToLocal(ctx context.Context, now time.Time) {
 	table.UpdateDBInfo(dbs, tables, appInfos, accessDBs, accessTables)
 }
 
-func syncFilterToLocal(ctx context.Context, now time.Time) {}
+func syncPluginToLocal(ctx context.Context, now time.Time) {}
 
 // InitTable 表结构获取
 func InitTable(ctx context.Context) {
@@ -210,13 +210,13 @@ func InitTable(ctx context.Context) {
 	//table, err = client.GenerateStructByTable(ctx, "tbl_access_table")
 	//fmt.Println(table)
 	//
-	//table, err = client.GenerateStructByTable(ctx, "tbl_filter")
+	//table, err = client.GenerateStructByTable(ctx, "tbl_plugin")
 	//fmt.Println(table)
 	//
-	//table, err = client.GenerateStructByTable(ctx, "tbl_filter_config")
+	//table, err = client.GenerateStructByTable(ctx, "tbl_plugin_config")
 	//fmt.Println(table)
 	//
-	//table, err = client.GenerateStructByTable(ctx, "tbl_table_filter")
+	//table, err = client.GenerateStructByTable(ctx, "tbl_table_plugin")
 	//fmt.Println(table)
 	//
 	//fmt.Println(err)

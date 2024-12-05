@@ -4,20 +4,20 @@ import (
 	"context"
 
 	"github.com/horm-database/common/consts"
-	"github.com/horm-database/common/proto/filter"
+	"github.com/horm-database/common/proto/plugin"
 	"github.com/horm-database/common/snowflake"
 	"github.com/horm-database/common/types"
-	"github.com/horm-database/server/filter/conf"
+	"github.com/horm-database/server/plugin/conf"
 )
 
-// Filter 表主键生成插件
-type Filter struct{}
+// Plugin 表主键生成插件
+type Plugin struct{}
 
-func (ft *Filter) Handle(ctx context.Context,
-	req *filter.Request,
-	rsp *filter.Response,
+func (ft *Plugin) Handle(ctx context.Context,
+	req *plugin.Request,
+	rsp *plugin.Response,
 	extend types.Map,
-	conf conf.FilterConfig) (response bool, err error) {
+	conf conf.PluginConfig) (response bool, err error) {
 	ukAutoGenerate, _, _ := conf.GetInt("uk_auto_generate")
 	uniqueKey, _ := conf.GetString("unique_key")
 	if (ukAutoGenerate == UKAutoGenByUStorage) && uniqueKey != "" && req.Op == consts.OpInsert {

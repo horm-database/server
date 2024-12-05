@@ -74,7 +74,7 @@ CREATE TABLE `tbl_db` (
                           KEY `productid` (`product_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='数据库表'
 
-CREATE TABLE `tbl_filter` (
+CREATE TABLE `tbl_plugin` (
                               `id` int NOT NULL AUTO_INCREMENT,
                               `name` varchar(128) NOT NULL DEFAULT '' COMMENT '插件名称',
                               `version` varchar(1024) NOT NULL DEFAULT '0' COMMENT '所有支持的插件版本，逗号分开',
@@ -92,10 +92,10 @@ CREATE TABLE `tbl_filter` (
                               UNIQUE KEY `func_name` (`func`)
 ) ENGINE=InnoDB AUTO_INCREMENT=27 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='插件信息'
 
-CREATE TABLE `tbl_filter_config` (
+CREATE TABLE `tbl_plugin_config` (
                                      `id` int NOT NULL AUTO_INCREMENT,
-                                     `filter_id` int NOT NULL COMMENT '插件id',
-                                     `filter_version` int NOT NULL DEFAULT '0' COMMENT 'filter版本',
+                                     `plugin_id` int NOT NULL COMMENT '插件id',
+                                     `plugin_version` int NOT NULL DEFAULT '0' COMMENT 'plugin版本',
                                      `key` varchar(64) NOT NULL DEFAULT '' COMMENT '插件配置 key ',
                                      `name` varchar(64) NOT NULL DEFAULT '' COMMENT '插件配置名',
                                      `type` tinyint NOT NULL DEFAULT '1' COMMENT '配置类型 1-bool、2-string、3-int、4-uint、5-float、6-枚举、7-时间、8-array、9-map、10-multi-conf',
@@ -106,7 +106,7 @@ CREATE TABLE `tbl_filter_config` (
                                      `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '记录创建时间',
                                      `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '记录最后修改时间',
                                      PRIMARY KEY (`id`),
-                                     UNIQUE KEY `filter_config` (`filter_id`,`filter_version`,`key`)
+                                     UNIQUE KEY `plugin_config` (`plugin_id`,`plugin_version`,`key`)
 ) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='插件配置'
 
 CREATE TABLE `tbl_product` (
@@ -180,11 +180,11 @@ CREATE TABLE `tbl_table` (
                              UNIQUE KEY `name` (`name`,`db`)
 ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='表配置'
 
-CREATE TABLE `tbl_table_filter` (
+CREATE TABLE `tbl_table_plugin` (
                                     `id` int NOT NULL AUTO_INCREMENT,
                                     `table_id` int NOT NULL COMMENT '表id',
-                                    `filter_id` int NOT NULL COMMENT '插件id',
-                                    `filter_version` int NOT NULL DEFAULT '0' COMMENT 'filter版本',
+                                    `plugin_id` int NOT NULL COMMENT '插件id',
+                                    `plugin_version` int NOT NULL DEFAULT '0' COMMENT 'plugin版本',
                                     `seq` int NOT NULL DEFAULT '1' COMMENT '插件执行顺序',
                                     `schedule_config` longtext COMMENT '插件调度配置，是一个json，内容是 map[string]interface{}',
                                     `config` longtext COMMENT '插件配置，是一个json，内容是 map[string]interface{}',

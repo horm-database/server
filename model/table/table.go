@@ -12,16 +12,16 @@ import (
 	"github.com/horm-database/common/util"
 	"github.com/horm-database/orm/obj"
 	"github.com/horm-database/server/consts"
-	"github.com/horm-database/server/filter/conf"
+	"github.com/horm-database/server/plugin/conf"
 	sc "github.com/horm-database/server/srv/codec"
 )
 
 var (
-	filterLock        = new(sync.RWMutex)
-	filter            = map[int]*TblFilter{}
-	tablePreFilters   = map[int][]*TblTableFilter{}
-	tablePostFilters  = map[int][]*TblTableFilter{}
-	tableDeferFilters = map[int][]*TblTableFilter{}
+	pluginLock        = new(sync.RWMutex)
+	plugin            = map[int]*TblPlugin{}
+	tablePrePlugins   = map[int][]*TblTablePlugin{}
+	tablePostPlugins  = map[int][]*TblTablePlugin{}
+	tableDeferPlugins = map[int][]*TblTablePlugin{}
 
 	dbLock     = new(sync.RWMutex)
 	dbMap      = map[int]*obj.TblDB{}
@@ -114,24 +114,24 @@ func GetAppInfo(appid uint64) *AppInfo {
 	return appInfoMap[appid]
 }
 
-func GetTableFilters(tableID int, typ int8) []*TblTableFilter {
-	filterLock.RLock()
-	defer filterLock.RUnlock()
+func GetTablePlugins(tableID int, typ int8) []*TblTablePlugin {
+	pluginLock.RLock()
+	defer pluginLock.RUnlock()
 
 	switch typ {
-	case consts.PreFilter:
-		return tablePreFilters[tableID]
-	case consts.PostFilter:
-		return tablePostFilters[tableID]
+	case consts.PrePlugin:
+		return tablePrePlugins[tableID]
+	case consts.PostPlugin:
+		return tablePostPlugins[tableID]
 	default:
-		return tableDeferFilters[tableID]
+		return tableDeferPlugins[tableID]
 	}
 }
 
-func GetFilter(id int) *TblFilter {
-	filterLock.RLock()
-	defer filterLock.RUnlock()
-	return filter[id]
+func GetPlugin(id int) *TblPlugin {
+	pluginLock.RLock()
+	defer pluginLock.RUnlock()
+	return plugin[id]
 }
 
 func SetDB(db *obj.TblDB) {
@@ -217,64 +217,64 @@ func SetAccessTable(accessTable *TblAccessTable) {
 	}
 }
 
-func SetFilter(f *TblFilter) {
-	filterLock.Lock()
-	defer filterLock.Unlock()
+func SetPlugin(f *TblPlugin) {
+	pluginLock.Lock()
+	defer pluginLock.Unlock()
 
-	filter[f.Id] = f
+	plugin[f.Id] = f
 }
 
-func InitTableFilter(tableFitlers []*TblTableFilter) error {
-	filterLock.Lock()
-	defer filterLock.Unlock()
+func InitTablePlugin(tableFitlers []*TblTablePlugin) error {
+	pluginLock.Lock()
+	defer pluginLock.Unlock()
 
 	for _, tf := range tableFitlers {
-		tf.Conf = getFilterConfig(tf.FilterId, tf.FilterVersion, tf.Config)
+		tf.Conf = getPluginConfig(tf.PluginID, tf.PluginVersion, tf.Config)
 		tf.ScheduleConf = &conf.ScheduleConfig{}
 		if tf.ScheduleConfig != "" {
 			err := json.Api.Unmarshal([]byte(tf.ScheduleConfig), &tf.ScheduleConf)
 			if err != nil {
-				log.Errorf(sc.GCtx, errs.RetFilterConfigDecode,
-					"unmarshal filter schedule config error=[%v], filter_id=[%d], filter_version=[%d], schedule_config=[%s]",
-					err, tf.FilterId, tf.FilterVersion, tf.ScheduleConfig)
+				log.Errorf(sc.GCtx, errs.RetPluginConfigDecode,
+					"unmarshal plugin schedule config error=[%v], plugin_id=[%d], plugin_version=[%d], schedule_config=[%s]",
+					err, tf.PluginID, tf.PluginVersion, tf.ScheduleConfig)
 			}
 		}
 
 		switch tf.Type {
-		case consts.PreFilter:
-			tablePreFilters[tf.TableId] = append(tablePreFilters[tf.TableId], tf)
-		case consts.PostFilter:
-			tablePostFilters[tf.TableId] = append(tablePostFilters[tf.TableId], tf)
-		case consts.DeferFilter:
-			tableDeferFilters[tf.TableId] = append(tableDeferFilters[tf.TableId], tf)
+		case consts.PrePlugin:
+			tablePrePlugins[tf.TableId] = append(tablePrePlugins[tf.TableId], tf)
+		case consts.PostPlugin:
+			tablePostPlugins[tf.TableId] = append(tablePostPlugins[tf.TableId], tf)
+		case consts.DeferPlugin:
+			tableDeferPlugins[tf.TableId] = append(tableDeferPlugins[tf.TableId], tf)
 		default:
 			return errors.New(
-				fmt.Sprintf("not find filter type: %d, table_id=%d and filter_id=%d", tf.Type, tf.TableId, tf.FilterId))
+				fmt.Sprintf("not find plugin type: %d, table_id=%d and plugin_id=%d", tf.Type, tf.TableId, tf.PluginID))
 		}
 	}
 
-	for k := range tablePreFilters {
-		sortedTablePreFilters, err := SortTableFilters("table pre-filter", tablePreFilters[k])
+	for k := range tablePrePlugins {
+		sortedTablePrePlugins, err := SortTablePlugins("table pre-plugin", tablePrePlugins[k])
 		if err != nil {
 			return err
 		}
-		tablePreFilters[k] = sortedTablePreFilters
+		tablePrePlugins[k] = sortedTablePrePlugins
 	}
 
-	for k := range tablePostFilters {
-		sortedTablePostFilters, err := SortTableFilters("table post-filter", tablePostFilters[k])
+	for k := range tablePostPlugins {
+		sortedTablePostPlugins, err := SortTablePlugins("table post-plugin", tablePostPlugins[k])
 		if err != nil {
 			return err
 		}
-		tablePostFilters[k] = sortedTablePostFilters
+		tablePostPlugins[k] = sortedTablePostPlugins
 	}
 
-	for k := range tableDeferFilters {
-		sortedTableDeferFilters, err := SortTableFilters("table defer-filter", tableDeferFilters[k])
+	for k := range tableDeferPlugins {
+		sortedTableDeferPlugins, err := SortTablePlugins("table defer-plugin", tableDeferPlugins[k])
 		if err != nil {
 			return err
 		}
-		tableDeferFilters[k] = sortedTableDeferFilters
+		tableDeferPlugins[k] = sortedTableDeferPlugins
 	}
 
 	return nil
@@ -341,7 +341,7 @@ func UpdateDBInfo(dbs []*obj.TblDB, tables []*obj.TblTable,
 	}
 }
 
-func getFilterConfig(filterID, filterVersion int, config string) map[string]interface{} {
+func getPluginConfig(pluginID, pluginVersion int, config string) map[string]interface{} {
 	result := map[string]interface{}{}
 
 	if config == "" {
@@ -350,56 +350,56 @@ func getFilterConfig(filterID, filterVersion int, config string) map[string]inte
 
 	err := json.Api.Unmarshal([]byte(config), &result)
 	if err != nil {
-		log.Errorf(sc.GCtx, errs.RetFilterConfigDecode,
-			"unmarshal filter config error=[%v], filter_id=[%d], filter_version=[%d], config=[%s]",
-			err, filterID, filterVersion, config)
+		log.Errorf(sc.GCtx, errs.RetPluginConfigDecode,
+			"unmarshal plugin config error=[%v], plugin_id=[%d], plugin_version=[%d], config=[%s]",
+			err, pluginID, pluginVersion, config)
 		return nil
 	}
 
 	return result
 }
 
-func SortTableFilters(typ string, tableFilters []*TblTableFilter) ([]*TblTableFilter, error) {
-	if len(tableFilters) == 0 {
-		return []*TblTableFilter{}, nil
+func SortTablePlugins(typ string, tablePlugins []*TblTablePlugin) ([]*TblTablePlugin, error) {
+	if len(tablePlugins) == 0 {
+		return []*TblTablePlugin{}, nil
 	}
 
-	var head *TblTableFilter
+	var head *TblTablePlugin
 
-	for _, tableFilter := range tableFilters {
-		if tableFilter.Front == 0 {
-			head = tableFilter
+	for _, tablePlugin := range tablePlugins {
+		if tablePlugin.Front == 0 {
+			head = tablePlugin
 			break
 		}
 	}
 
 	if head == nil {
-		return nil, errs.Newf(errs.RetFilterFrontNotFind,
-			"table_id %d not find head of %s", tableFilters[0].TableId, typ)
+		return nil, errs.Newf(errs.RetPluginFrontNotFind,
+			"table_id %d not find head of %s", tablePlugins[0].TableId, typ)
 	}
 
-	ret := []*TblTableFilter{}
+	ret := []*TblTablePlugin{}
 	ret = append(ret, head)
 
-	currentTableFilter := head
-	for i := 0; i < len(tableFilters)-1; i++ {
-		frontTableFilter := findFrontTableFilter(currentTableFilter, tableFilters)
-		if frontTableFilter == nil {
-			return nil, errs.Newf(errs.RetFilterFrontNotFind, "%s %d not find front table_filter=%d",
-				typ, currentTableFilter.Id, currentTableFilter.Front)
+	currentTablePlugin := head
+	for i := 0; i < len(tablePlugins)-1; i++ {
+		frontTablePlugin := findFrontTablePlugin(currentTablePlugin, tablePlugins)
+		if frontTablePlugin == nil {
+			return nil, errs.Newf(errs.RetPluginFrontNotFind, "%s %d not find front table_plugin=%d",
+				typ, currentTablePlugin.Id, currentTablePlugin.Front)
 		}
 
-		currentTableFilter = frontTableFilter
-		ret = append(ret, currentTableFilter)
+		currentTablePlugin = frontTablePlugin
+		ret = append(ret, currentTablePlugin)
 	}
 
 	return ret, nil
 }
 
-func findFrontTableFilter(currentTableFilter *TblTableFilter, tableFilters []*TblTableFilter) *TblTableFilter {
-	for _, tableFilter := range tableFilters {
-		if currentTableFilter.TableId == tableFilter.Front {
-			return tableFilter
+func findFrontTablePlugin(currentTablePlugin *TblTablePlugin, tablePlugins []*TblTablePlugin) *TblTablePlugin {
+	for _, tablePlugin := range tablePlugins {
+		if currentTablePlugin.TableId == tablePlugin.Front {
+			return tablePlugin
 		}
 	}
 	return nil

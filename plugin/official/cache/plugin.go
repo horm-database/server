@@ -7,10 +7,10 @@ import (
 	"github.com/horm-database/common/compress"
 	"github.com/horm-database/common/consts"
 	"github.com/horm-database/common/proto"
-	"github.com/horm-database/common/proto/filter"
+	"github.com/horm-database/common/proto/plugin"
 	"github.com/horm-database/common/types"
 	"github.com/horm-database/orm"
-	"github.com/horm-database/server/filter/conf"
+	"github.com/horm-database/server/plugin/conf"
 )
 
 type CacheData struct {
@@ -23,14 +23,14 @@ type CacheData struct {
 	Datas   []map[string]interface{} `json:"datas,omitempty"`
 }
 
-type FrontFilter struct{} // 缓存前置插件
-type PostFilter struct{}  // 缓存后置插件
+type FrontPlugin struct{} // 缓存前置插件
+type PostPlugin struct{}  // 缓存后置插件
 
-func (ft *FrontFilter) Handle(ctx context.Context,
-	req *filter.Request,
-	rsp *filter.Response,
+func (ft *FrontPlugin) Handle(ctx context.Context,
+	req *plugin.Request,
+	rsp *plugin.Response,
 	extend types.Map,
-	conf conf.FilterConfig) (response bool, err error) {
+	conf conf.PluginConfig) (response bool, err error) {
 	var limitField string
 	var writeCache bool
 
@@ -80,11 +80,11 @@ func (ft *FrontFilter) Handle(ctx context.Context,
 	return false, nil
 }
 
-func (ft *PostFilter) Handle(ctx context.Context,
-	_ *filter.Request,
-	rsp *filter.Response,
+func (ft *PostPlugin) Handle(ctx context.Context,
+	_ *plugin.Request,
+	rsp *plugin.Response,
 	extend types.Map,
-	conf conf.FilterConfig) (response bool, err error) {
+	conf conf.PluginConfig) (response bool, err error) {
 	writeCache, exists := extend.GetBool("writeCache")
 	if !exists {
 		return
