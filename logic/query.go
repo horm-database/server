@@ -159,6 +159,7 @@ func query(ctx context.Context, appid uint64,
 	return rsp.Result, rsp.Detail, rsp.IsNil, rsp.Error
 }
 
+// 插件编排处理
 func pluginsHandle(ctx context.Context, req *pf.Request, resp *pf.Response, appid uint64, extend types.Map,
 	tblTable *obj.TblTable, typ int8) (response bool, result interface{}, detail *proto.Detail, isNil bool, err error) {
 	tablePlugins := table.GetTablePlugins(tblTable.Id, typ)

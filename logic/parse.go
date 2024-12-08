@@ -352,9 +352,9 @@ func parseCompResult(node *obj.Tree) map[string]interface{} {
 		key := realNode.GetKey()
 
 		if !node.IsSuccess() {
-			result[key] = proto.CompResult{Error: util.ErrorToRspError(node.Error)}
+			result[key] = proto.CompResult{CompBase: proto.CompBase{Error: util.ErrorToRspError(node.Error)}}
 		} else if node.IsNil {
-			result[key] = proto.CompResult{IsNil: true}
+			result[key] = proto.CompResult{CompBase: proto.CompBase{IsNil: true}}
 		} else {
 			if realNode.IsTransaction() {
 				result[key] = parseCompResult(node.TransInfo.Trans)
@@ -429,7 +429,7 @@ func InitTree(node *obj.Tree, unit *proto.Unit, requestHeader *proto.RequestHead
 	}
 
 	if node.Parent == nil {
-		property.Path = property.Key
+		property.Path = "/" + property.Key
 	} else {
 		property.Path = node.Parent.GetPath() + "/" + property.Key
 	}

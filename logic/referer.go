@@ -93,12 +93,16 @@ func mapReferHandle(node *obj.Tree, dbType int, data map[string]interface{}) (ma
 	for k, v := range data {
 		nk := util.RemoveComments(k)
 		if types.FirstWord(nk, 1) == "@" { //引用
-			ret, isNil, err := findReferer(node, v.(string))
+			referer, ok := v.(string)
+			if !ok {
+				return nil, false, errs.Newf(errs.RetRefererMustBeString, "referer %s must be string", nk)
+			}
+			ret, isNil, err := findReferer(node, referer)
 			if err != nil || isNil {
 				return nil, isNil, err
 			}
 
-			result[k] = ret
+			result[k[1:]] = ret
 		} else { // 递归处理引用
 			rv := reflect.ValueOf(v)
 			isRelation, isSliceAndOR, _ := util.GetRelation(dbType, nk, rv)
@@ -224,17 +228,20 @@ func argHasReferer(arg string) bool {
 // getRefererParam 取出引用参数
 func getRefererParam(arg string) string {
 	arg = strings.TrimSpace(arg)
-	return arg[2 : len(arg)-2]
+	return arg[2 : len(arg)-1]
 }
 
 // findReferer 找到被引用节点结果
 func findReferer(node *obj.Tree, referer string) (ret interface{}, isNil bool, err error) {
-	path := node.GetReal().GetPath()
-
 	refererPath, refererField := util.PathAndField(referer)
-	if types.FirstWord(refererPath, 1) != "/" { //将相对路径转化为引用路径
+	if types.FirstWord(refererPath, 1) != "/" { //将相对路径转化为全路径
+		path := node.GetReal().GetPath()
 		lastIndex := strings.LastIndex(path, "/")
-		refererPath = path[:lastIndex+1] + refererPath
+		if refererPath == "" {
+			refererPath = path[:lastIndex]
+		} else {
+			refererPath = path[:lastIndex] + "/" + refererPath
+		}
 	}
 
 	for {
@@ -273,6 +280,10 @@ func findReferer(node *obj.Tree, referer string) (ret interface{}, isNil bool, e
 			ret, err = getFieldValue(refererField, result)
 			if err != nil {
 				return nil, false, err
+			}
+
+			if ret != nil {
+				ret = reflect.Indirect(reflect.ValueOf(ret)).Interface()
 			}
 			return
 		}
