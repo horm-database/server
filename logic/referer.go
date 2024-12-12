@@ -2,6 +2,7 @@ package logic
 
 import (
 	"fmt"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"github.com/horm-database/common/types"
 	"github.com/horm-database/common/util"
 	"github.com/horm-database/orm/obj"
+	cs "github.com/horm-database/server/consts"
 )
 
 // 将引用替换为具体的值
@@ -233,23 +235,26 @@ func getRefererParam(arg string) string {
 
 // findReferer 找到被引用节点结果
 func findReferer(node *obj.Tree, referer string) (ret interface{}, isNil bool, err error) {
-	refererPath, refererField := util.PathAndField(referer)
-	if types.FirstWord(refererPath, 1) != "/" { //将相对路径转化为全路径
-		path := node.GetReal().GetPath()
-		lastIndex := strings.LastIndex(path, "/")
-		if refererPath == "" {
-			refererPath = path[:lastIndex]
-		} else {
-			refererPath = path[:lastIndex] + "/" + refererPath
+	refererPath, refererField := pathAndField(referer)
+	if !filepath.IsAbs(refererPath) { // 相对路径转化为绝对路径
+		if len(refererPath) < 3 || refererPath[:3] != "../" {
+			if len(refererPath) >= 2 && refererPath[:2] == "./" {
+				refererPath = "." + refererPath
+			} else {
+				refererPath = "../" + refererPath
+			}
 		}
+
+		path := node.GetReal().GetPath()
+		refererPath = filepath.Join(path, refererPath)
 	}
 
 	for {
-		var tmp *obj.Tree
+		var cur *obj.Tree
 		if node.Last != nil {
 			node = node.Last
 		} else {
-			tmp = node
+			cur = node
 			node = node.Parent
 		}
 
@@ -257,9 +262,11 @@ func findReferer(node *obj.Tree, referer string) (ret interface{}, isNil bool, e
 			return nil, false, errs.Newf(errs.RetNotFindReferer, "not find referer unit [%s]", referer)
 		}
 
-		if node.GetReal().GetPath() == refererPath {
+		nodePath := node.GetReal().GetPath()
+
+		if nodePath == refererPath {
 			var result interface{}
-			if tmp != nil {
+			if cur != nil {
 				if node.IsNil {
 					return nil, true, nil
 				}
@@ -269,7 +276,7 @@ func findReferer(node *obj.Tree, referer string) (ret interface{}, isNil bool, e
 						"referer unit [%s] failed", referer)
 				}
 
-				result = tmp.ParentRet
+				result = cur.ParentRet
 			} else {
 				result, isNil, err = getRefererResult(node, referer)
 				if err != nil || isNil {
@@ -286,6 +293,92 @@ func findReferer(node *obj.Tree, referer string) (ret interface{}, isNil bool, e
 				ret = reflect.Indirect(reflect.ValueOf(ret)).Interface()
 			}
 			return
+		} else if strings.Index(refererPath, nodePath) == 0 {
+			if len(node.SubQuery) == 0 {
+				return nil, false, errs.Newf(errs.RetNotFindReferer, "not find referer unit [%s]", referer)
+			}
+
+			relativeRefererPath := strings.TrimPrefix(refererPath, nodePath)
+			if relativeRefererPath[0] == '/' {
+				relativeRefererPath = relativeRefererPath[1:]
+			}
+			refererPathArr := strings.Split(relativeRefererPath, "/")
+
+			var find bool
+			var e error
+			var retArr = []interface{}{}
+
+			for _, sub := range node.SubQuery {
+				findRefererByPath(sub, referer, refererPathArr, refererField, &retArr, &find, &e)
+			}
+
+			if !find {
+				return nil, false, errs.Newf(errs.RetNotFindReferer, "not find referer unit [%s]", referer)
+			}
+
+			if e != nil {
+				return nil, false, e
+			}
+
+			if len(retArr) == 0 {
+				return nil, true, nil
+			}
+
+			return retArr, false, nil
+		}
+	}
+}
+
+func findRefererByPath(cur *obj.Tree, referer string,
+	refererPathArr []string, refererField string, ret *[]interface{}, find *bool, e *error) {
+	for {
+		dir := refererPathArr[0]
+		if cur.GetReal().GetKey() == dir {
+			if len(refererPathArr) == 1 {
+				if cur.Finished != cs.QueryFinishedYes {
+					*e = errs.Newf(errs.RetRefererUnitFailed, "referer unit is not execute [%s]", referer)
+					return
+				}
+				*find = true
+
+				if cur.IsNil {
+					return
+				}
+
+				if cur.Error != nil {
+					*e = cur.Error
+					return
+				}
+
+				result, err := getFieldValue(refererField, cur.Result)
+				if err != nil {
+					*e = err
+				}
+
+				switch v := result.(type) {
+				case []interface{}:
+					*ret = append(*ret, v...)
+				default:
+					*ret = append(*ret, v)
+				}
+
+				return
+			} else {
+				if len(cur.SubQuery) == 0 {
+					return
+				}
+
+				for _, sub := range cur.SubQuery {
+					findRefererByPath(sub, referer, refererPathArr[1:], refererField, ret, find, e)
+				}
+
+				return
+			}
+		} else {
+			cur = cur.Next
+			if cur == nil {
+				return
+			}
 		}
 	}
 }
@@ -365,4 +458,25 @@ func getFieldValue(field string, refererResult interface{}) (interface{}, error)
 	default:
 		return nil, errs.Newf(errs.RetRefererResultType, "referer result type error")
 	}
+}
+
+// pathAndField 获取路径和字段
+func pathAndField(referer string) (refererPath, refererField string) {
+	refererPath = referer
+
+	if strings.Index(referer, "../") != -1 {
+		referer = strings.Replace(referer, "../", "", -1)
+	}
+
+	if strings.Index(referer, "./") != -1 {
+		referer = strings.Replace(referer, "./", "", -1)
+	}
+
+	index := strings.Index(referer, ".")
+	if index != -1 {
+		refererField = referer[index+1:]
+		refererPath = strings.TrimSuffix(refererPath, "."+refererField)
+	}
+
+	return
 }
