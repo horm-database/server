@@ -266,14 +266,18 @@ func findReferer(node *obj.Tree, referer string) (ret interface{}, isNil bool, e
 
 		if nodePath == refererPath {
 			var result interface{}
+
+			if node.Finished != cs.QueryFinishedYes {
+				return nil, false, errs.Newf(errs.RetRefererUnitNotExec, "referer unit is not execute [%s]", referer)
+			}
+
 			if cur != nil {
 				if node.IsNil {
 					return nil, true, nil
 				}
 
 				if !node.IsSuccess() {
-					return nil, false, errs.Newf(errs.RetRefererUnitFailed,
-						"referer unit [%s] failed", referer)
+					return nil, false, errs.Newf(errs.RetRefererUnitFailed, "referer unit [%s] failed", referer)
 				}
 
 				result = cur.ParentRet
@@ -336,7 +340,7 @@ func findRefererByPath(cur *obj.Tree, referer string,
 		if cur.GetReal().GetKey() == dir {
 			if len(refererPathArr) == 1 {
 				if cur.Finished != cs.QueryFinishedYes {
-					*e = errs.Newf(errs.RetRefererUnitFailed, "referer unit is not execute [%s]", referer)
+					*e = errs.Newf(errs.RetRefererUnitNotExec, "referer unit is not execute [%s]", referer)
 					return
 				}
 				*find = true
@@ -409,6 +413,10 @@ func getRefererResult(node *obj.Tree, referer string) (interface{}, bool, error)
 
 // getFieldValue 找到被引用的 field
 func getFieldValue(field string, refererResult interface{}) (interface{}, error) {
+	if field == "" {
+		return refererResult, nil
+	}
+
 	switch result := refererResult.(type) {
 	case map[string]interface{}:
 		ret, ok := result[field]
@@ -447,16 +455,23 @@ func getFieldValue(field string, refererResult interface{}) (interface{}, error)
 			return ret[0], nil
 		}
 		return ret, nil
-	case *proto.ModResult:
-		if field == "last_insert_id" {
+	case *proto.ModRet:
+		switch field {
+		case "id", "last_insert_id":
 			return result.ID, nil
-		} else if field == "rows_affected" {
+		case "rows_affected":
 			return result.RowAffected, nil
-		} else {
+		case "version":
+			return result.Version, nil
+		case "status":
+			return result.Status, nil
+		case "reason":
+			return result.Reason, nil
+		default:
 			return nil, errs.Newf(errs.RetRefererFieldNotExist, "referer result filed not exist")
 		}
 	default:
-		return nil, errs.Newf(errs.RetRefererResultType, "referer result type error")
+		return nil, errs.Newf(errs.RetRefererResultType, "referer result type is invalid")
 	}
 }
 

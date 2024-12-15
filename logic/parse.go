@@ -323,8 +323,7 @@ func parseParallelResult(node *obj.Tree) (interface{}, map[string]bool, map[stri
 				} else {
 					pageResult.Data, _ = types.InterfaceToArray(node.Result)
 				}
-				result[key] = node.Detail
-				return result, rspNil, nil
+				result[key] = pageResult
 			} else {
 				result[key] = node.Result
 			}
@@ -352,9 +351,9 @@ func parseCompResult(node *obj.Tree) map[string]interface{} {
 		key := realNode.GetKey()
 
 		if !node.IsSuccess() {
-			result[key] = proto.CompResult{CompBase: proto.CompBase{Error: util.ErrorToRspError(node.Error)}}
+			result[key] = proto.CompResult{RetBase: proto.RetBase{Error: util.ErrorToRspError(node.Error)}}
 		} else if node.IsNil {
-			result[key] = proto.CompResult{CompBase: proto.CompBase{IsNil: true}}
+			result[key] = proto.CompResult{RetBase: proto.RetBase{IsNil: true}}
 		} else {
 			if realNode.IsTransaction() {
 				result[key] = parseCompResult(node.TransInfo.Trans)
