@@ -317,13 +317,13 @@ func parseParallelResult(node *obj.Tree) (interface{}, map[string]bool, map[stri
 			rspNil[key] = true
 		} else {
 			if hasDetail(node.Detail) {
-				pageResult := proto.PageResult{Detail: node.Detail}
+				pageRet := proto.PageResult{Detail: node.Detail}
 				if node.Result == nil {
-					pageResult.Data = []interface{}{}
+					pageRet.Data = []interface{}{}
 				} else {
-					pageResult.Data, _ = types.InterfaceToArray(node.Result)
+					pageRet.Data, _ = types.InterfaceToArray(node.Result)
 				}
-				result[key] = pageResult
+				result[key] = pageRet
 			} else {
 				result[key] = node.Result
 			}
