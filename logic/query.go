@@ -68,6 +68,8 @@ func query(ctx context.Context, appid uint64,
 	req.Size = unit.Size
 	req.From = unit.From
 
+	req.Join = unit.Join
+
 	req.Type = unit.Type
 	req.Scroll = unit.Scroll
 

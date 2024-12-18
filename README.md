@@ -1,423 +1,832 @@
 # 一 数据统一接入协议
-统一接入协议是接入数据统一接入服务而设计的一套包含增删改查等等一系列操作的数据访问协议。接入层采用同一套协议，可以操作统一存储中心的多种存储引擎，如：mysql、clickhouse、postgres等类 sql 协议引擎，还有 redis、BDB、Tendis 等类 redis 协议引擎，另外还支持  elastic search 引擎。<br>
+数据统一接入协议是为了不同类型数据库的访问而设计的一套包含增删改查等等一系列操作的协议。接入层采用同一套协议， 可以操作数据统一接入服务配置的
+多种存储引擎，如：mysql、clickhouse、postgres等类 sql 协议引擎，还有 redis 协议引擎，另外还支持  elastic search 引擎。<br>
 在数据统一接入服务，我们可以将数据的采集、更新加工、展示、监控流向一站式的把控。
-协议由一组`执行单元`组成，根据功能他们可以细分为 `变更单元` 或 `查询单元` ，每个执行单元都是对一张表或者一个es 索引的一个操作，包含增删改查等操作。执行单元之间可以是并行执行的关系，还可以存在字段引用的关系、或者嵌套关系，比如一个查询单元的 WHERE 条件中某个字段引用自另一个查询单元的查询结果，那么就需要等被引用的查询单元执行完成之后，再去执行该查询单元。
 
-## 1.1 查询模式
-统一接入协议一共包含3种查询模式，单执行单元，并行执行，嵌套查询。
+#  示例表
+建表语句：
+```sql
+CREATE TABLE `student` (
+    `id` int NOT NULL AUTO_INCREMENT,
+    `identify` bigint NOT NULL COMMENT '学生编号',
+    `gender` tinyint NOT NULL DEFAULT '1' COMMENT '1-male 2-female',
+    `age` int unsigned NOT NULL DEFAULT '0' COMMENT '年龄',
+    `name` varchar(64) NOT NULL COMMENT '名称',
+    `score` double DEFAULT NULL COMMENT '分数',
+    `image` blob COMMENT 'image',
+    `article` text COMMENT 'publish article',
+    `exam_time` time DEFAULT NULL COMMENT '考试时间',
+    `birthday` date DEFAULT NULL COMMENT '出生日期',
+    `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='学生表';
+
+CREATE TABLE `student_course` (
+    `id` int NOT NULL AUTO_INCREMENT,
+    `identify` bigint NOT NULL COMMENT '学生编号',
+    `course` varchar(64) NOT NULL COMMENT '课程',
+    `hours` int DEFAULT '0' COMMENT '课时数',
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='学生课程表';
+
+CREATE TABLE `course_info` (
+    `course` varchar(64) NOT NULL COMMENT '课程',
+    `teacher` varchar(64) NOT NULL COMMENT '课程老师',
+    `time` time NOT NULL COMMENT '上课时间',
+    PRIMARY KEY (`course`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='课程信息';
+
+CREATE TABLE `teacher_info` (
+    `teacher` varchar(32) NOT NULL COMMENT '老师',
+    `age` int NOT NULL DEFAULT '0' COMMENT '年龄',
+    PRIMARY KEY (`teacher`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='老师信息';
+
+CREATE TABLE `score_rank_reward` (
+    `rank` int NOT NULL COMMENT '排名',
+    `reward` varchar(128) NOT NULL DEFAULT '' COMMENT '奖励',
+    PRIMARY KEY (`rank`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='分数排名奖励'
+```
+
+# 查询单元（执行单元）
+协议由一组查询单元（执行单元）组成，每个执行单元都是对一张表或者一个es 索引的一个操作，包含增删改查等操作，查询单元（执行单元）在
+数据统一接入服务通过 `name(数据名称)` 找到对应的表/es索引/redis 配置信息、及其数据库信息，然后根据协议将执行单元转化为对应数据库 sql语句、
+elastic 请求或 redis 请求，并将执行结果返回到客户端。
+
+请求：
+```json
+{
+  "name": "student",
+  "op": "find",
+  "where": {
+    "name": "caohao"
+  }
+}
+```
+
+返回结果：
+```json
+{
+  "created_at": "2024-11-30T20:53:57+08:00",
+  "id": 1,
+  "identify": 2024061211,
+  "age": 19,
+  "score": 89.7,
+  "image": "SU1BR0UuUENH",
+  "exam_time": "15:30:00",
+  "birthday": "1995-03-23T00:00:00+08:00",
+  "gender": 1,
+  "name": "caohao",
+  "article": "Compilation theory, architecture of large systems, and development of Reduced Instruction Set (RISC) computers",
+  "updated_at": "2024-12-12T19:30:37+08:00"
+}
+```
+
+## 查询单元结构体
+一个完整的执行单元包含如下信息：
+```go
+// github.com/horm-database/common/proto
+
+package proto
+
+import (
+	"github.com/horm-database/common/consts"
+)
+
+// Unit 查询单元（执行单元）
+type Unit struct {
+	// query base info
+	Name  string   `json:"name,omitempty"`  // name
+	Op    string   `json:"op,omitempty"`    // operation
+	Shard []string `json:"shard,omitempty"` // 分片、分表、分库
+
+	// 结构化查询共有
+	Column []string               `json:"column,omitempty"` // columns
+	Where  map[string]interface{} `json:"where,omitempty"`  // query condition
+	Order  []string               `json:"order,omitempty"`  // order by
+	Page   int                    `json:"page,omitempty"`   // request pages. when page > 0, the request is returned in pagination.
+	Size   int                    `json:"size,omitempty"`   // size per page
+	From   uint64                 `json:"from,omitempty"`   // offset
+
+	// 数据更新
+	Data     map[string]interface{}     `json:"data,omitempty"`      // add/update one data
+	Datas    []map[string]interface{}   `json:"datas,omitempty"`     // batch add/update data
+	DataType map[string]consts.DataType `json:"data_type,omitempty"` // 数据类型（主要用于 clickhouse，对于数据类型有强依赖），请求 json 不区分 int8、int16、int32、int64 等，只有 Number 类型，bytes 也会被当成 string 处理。
+
+	// group by
+	Group  []string               `json:"group,omitempty"`  // group by
+	Having map[string]interface{} `json:"having,omitempty"` // group by condition
+
+	// for databases such as elastic ...
+	Type   string  `json:"type,omitempty"`   // type, such as elastic`s type, it can be customized before v7, and unified as _doc after v7
+	Scroll *Scroll `json:"scroll,omitempty"` // scroll info
+
+	// for databases such as redis ...
+	Prefix string        `json:"prefix,omitempty"` // prefix, It is strongly recommended to bring it to facilitate finer-grained summary statistics, otherwise the statistical granularity can only be cmd ，such as GET、SET、HGET ...
+	Key    string        `json:"key,omitempty"`    // key
+	Args   []interface{} `json:"args,omitempty"`   // args 参数的数据类型存于 data_type
+
+	// bytes 字节流
+	Bytes []byte `json:"bytes,omitempty"`
+
+	// params 与数据库特性相关的附加参数，例如 mysql 的join，redis 的 WITHSCORES，以及 elastic 的 refresh、collapse、runtime_mappings、track_total_hits 等等。
+	Params map[string]interface{} `json:"params,omitempty"`
+
+	// 直接送 Query 语句，需要拥有库的 表权限、或 root 权限。具体参数为 args
+	Query string `json:"query,omitempty"`
+
+	// Extend 扩展信息，作用于插件
+	Extend map[string]interface{} `json:"extend,omitempty"`
+
+	Sub   []*Unit `json:"sub,omitempty"`   // 子查询
+	Trans []*Unit `json:"trans,omitempty"` // 事务，该事务下的所有 Unit 必须同时成功或失败（注意：仅适合支持事务的数据库回滚，如果数据库不支持事务，则操作不会回滚）
+}
+
+// Scroll 滚动查询
+type Scroll struct {
+	ID   string `json:"id,omitempty"`   // 滚动 id
+	Info string `json:"info,omitempty"` // 滚动查询信息，如时间
+}
+```
+
+## 别名
+如果我们用到 mysql 的别名，或者在并发查询、复合查询模式下、同一层级的多个查询单元如果访问同一张表，为了结果的正常，我们必须在括号里加上别名，
+如下代码的`redis_student(zadd)` 和 `redis_student(range_by_score)` ，我们都是访问 redis_student。
 ```json
 [
     {
-        "name":"student",
-        "op":"find",
-        "where":{
-            "userid":32346
-        }
+        "name": "redis_student(zadd)",
+        "op": "zadd",
+        "key": "student_age_rank",
+        "args": [
+            23,
+            "{\"image\":\"SU1BR0UuUENH\",\"birthday\":\"0001-01-01T00:00:00Z\",\"name\":\"kitty\",\"article\":\"Artificial Intelligence\",\"updated_at\":\"2024-12-18T19:40:41.184551+08:00\",\"gender\":2,\"score\":91.5,\"exam_time\":\"15:30:00\",\"id\":227514321192628225,\"created_at\":\"2024-12-18T19:40:41.184549+08:00\",\"identify\":2024080313,\"age\":23}"
+        ]
     },
     {
-        "name":"grade",
-        "op":"find_all",
-        "where":{
-            "score >":90
+        "name": "redis_student(range)",
+        "op": "zrangebyscore",
+        "key": "student_age_rank",
+        "args": [
+            10,
+            50
+        ],
+        "params": {
+            "with_scores": true
         }
     }
 ]
 ```
 
-### 1.1.1 单执行单元
+以下是上面请求的返回结果，是一个 map，其中 map 的 key 就是执行单元的名称或别名，如果都用 redist_student，则无法区分是返回
+是哪个执行单元的结果，而且会丢失一个执行单元的结果，这时候需要用别名来区别。
+```json
+{
+    "zadd": 1,
+    "range": {
+        "member": [
+            "{\"image\":\"SU1BR0UuUENH\",\"birthday\":\"0001-01-01T00:00:00Z\",\"name\":\"kitty\",\"article\":\"Artificial Intelligence\",\"updated_at\":\"2024-12-18T19:40:41.184551+08:00\",\"gender\":2,\"score\":91.5,\"exam_time\":\"15:30:00\",\"id\":227514321192628225,\"created_at\":\"2024-12-18T19:40:41.184549+08:00\",\"identify\":2024080313,\"age\":23}",
+            "{\"score\":91.5,\"birthday\":\"0001-01-01T00:00:00Z\",\"name\":\"kitty\",\"article\":\"Artificial Intelligence\",\"exam_time\":\"15:30:00\",\"updated_at\":\"2024-12-17T20:49:17.568859+08:00\",\"id\":227169198692904961,\"age\":23,\"created_at\":\"2024-12-17T20:49:17.568853+08:00\",\"gender\":2,\"identify\":2024080313,\"image\":\"SU1BR0UuUENH\"}"
+        ],
+        "score": [
+            23,
+            23
+        ]
+    }
+}
+```
+
+另外一种情况就是作为 mysql 的别名存在：
+```json
+{
+  "name": "student_course(sc)",
+  "op": "find_all",
+  "column": [
+    "sc.*",
+    "s.name"
+  ],
+  "size": 100,
+  "join": [
+    {
+      "type": "LEFT",
+      "table": "student(s)",
+      "on": {
+        "identify": "identify"
+      }
+    }
+  ]
+}
+```
+
+上面的语句生成的对应 sql 语句如下：
+```sql
+SELECT  `sc`.* , `s`.`name`  FROM `student_course` AS `sc` 
+	LEFT JOIN `student` AS `s` ON `sc`.`identify`=`s`.`identify`
+```
+
+## 分片、分表、分库
+在统一接入服务，可以配置 4 种分表策略。
+* 0 - 无分表，直接返回服务端配置 table_name 。以及所属的数据库信息。
+* 1 - 取自客户端送的 shard 字段，通过 `Shard` 函数指定分表。
+
+# 查询模式
+数据统一接入协议一共包含3种查询模式，单查询单元，并行执行，嵌套查询。
+## 单查询单元
 整个查询仅包含一个执行单元。
-#### 1.1.1.1 查询单条记录
-* 请求
+### 单结果返回
+执行单条语句，`isNil`, `error` 直接通过 Exec 函数返回，当查询结果为空时，isNil=true。
+
+查询单条记录：
+请求：
 ```json
 {
-    "name":"student",
-    "op":"find",
-    "where":{
-        "userid":32346
-    }
-}
-```
-查询 userid = 32346 的学生。
-* 返回：
-```json
-{
-    "userid":32346,
-    "sex":"male",
-    "age":18,
-    "name":"smallhowcao",
-    "status":1
+  "name": "student",
+  "op": "find",
+  "where": {
+    "name": "caohao"
+  }
 }
 ```
 
-#### 1.1.1.2 查询多条记录
-* 请求
+返回结果：
 ```json
 {
-    "name":"student",
-    "op":"find_all",
-    "where":{
-        "status !":0,
-        "sex":"male",
-        "age >":15
-    }
+  "created_at": "2024-11-30T20:53:57+08:00",
+  "id": 1,
+  "identify": 2024061211,
+  "age": 19,
+  "score": 89.7,
+  "image": "SU1BR0UuUENH",
+  "exam_time": "15:30:00",
+  "birthday": "1995-03-23T00:00:00+08:00",
+  "gender": 1,
+  "name": "caohao",
+  "article": "Compilation theory, architecture of large systems, and development of Reduced Instruction Set (RISC) computers",
+  "updated_at": "2024-12-12T19:30:37+08:00"
 }
 ```
 
-查询 status!=0 and sex='male' and age>15 的所有学生。
-* 返回：
+查询多条记录
+请求：
+```json
+{
+    "name": "student",
+    "op": "find_all",
+    "where": {
+        "name ~": "%cao%"
+    },
+    "size": 100
+}
+```
+
+返回结果：
 ```json
 [
-    {
-        "userid":32346,
-        "sex":"male",
-        "age":18,
-        "name":"smallhowcao",
-        "status":1
-    },
-    {
-        "userid":43216,
-        "sex":"male",
-        "age":22,
-        "name":"jack",
-        "status":1
-    }
+  {
+    "image": "SU1BR0UuUENH",
+    "created_at": "2024-11-30T20:53:57+08:00",
+    "updated_at": "2024-12-12T19:30:37+08:00",
+    "age": 19,
+    "name": "caohao",
+    "score": 89.7,
+    "article": "Compilation theory, architecture of large systems, and development of Reduced Instruction Set (RISC) computers",
+    "exam_time": "15:30:00",
+    "birthday": "1995-03-23T00:00:00+08:00",
+    "id": 1,
+    "identify": 2024061211,
+    "gender": 1
+  },
+  {
+    "image": "cDFJHVDwerC",
+    "created_at": "2024-11-30T20:53:57+08:00",
+    "updated_at": "2024-12-12T19:30:37+08:00",
+    "age": 23,
+    "name": "hongcao",
+    "score": 91.3,
+    "article": "",
+    "exam_time": "14:30:00",
+    "birthday": "1995-03-23T00:00:00+08:00",
+    "id": 1,
+    "identify": 2024062461,
+    "gender": 1
+  }
 ]
 ```
 
-### 1.1.2 并行执行
-并行查询是指的多个执行单元在同一次请求中返回，不同执行单元的结果会放在一个 map[string]interface{} 返回，map 的 key 是执行单元的 name 或别名。
-从理论上来说，两个执行单元是应该并行执行的，除了 2 种特殊情况：
-- 一种是引用，一个执行单元的执行条件引用自另一个执行单元的结果，那么他必须等到被引用执行单元完成之后才可以执行。
-- 另外一种是带有 wait 关键词的，表示我需要等待指定的执行单元完成之后才能执行。
-
-* 请求
-```json
-[
-    {
-        "name":"student",
-        "op":"find",
-        "where":{
-            "userid":32346
-        }
-    },
-    {
-        "name":"grade",
-        "op":"find_all",
-        "where":{
-            "score >":90
-        }
-    }
-]
-```
-
-查询 userid = 32346 的学生和分数大于90分的信息。
-* 返回：
+### 多结果返回
+有时候，可能会返回多个结果，例如 redis 的 ZRangeByScore：
+请求：
 ```json
 {
-    "student":{
-        "userid":32346,
-        "sex":"male",
-        "age":31,
-        "name":"smallhowcao",
-        "status":1
+  "name": "redis_student",
+  "op": "zrangebyscore",
+  "key": "student_age_rank",
+  "args": [
+    10,
+    50
+  ],
+  "params": {
+    "with_scores": true
+  }
+}
+```
+
+返回如下，member 和 score 在两个数据内返回，而且 member 是有序集成员，数组下标相同的 score 为成员的分数。：
+```json
+{
+    "member": [
+        "{\"age\":23,\"image\":\"SU1BR0UuUENH\",\"article\":\"Artificial Intelligence\",\"id\":227518753250750465,\"score\":91.5,\"birthday\":\"1987-08-27T00:00:00Z\",\"updated_at\":\"2024-12-18T19:58:17.869141+08:00\",\"identify\":2024080313,\"exam_time\":\"15:30:00\",\"gender\":2,\"name\":\"kitty\",\"created_at\":\"2024-12-18T19:58:17.869147+08:00\"}",
+        "{\"image\":\"SU1BR0UuUENH\",\"birthday\":\"0001-01-01T00:00:00Z\",\"name\":\"kitty\",\"article\":\"Artificial Intelligence\",\"updated_at\":\"2024-12-18T19:40:41.184551+08:00\",\"gender\":2,\"score\":91.5,\"exam_time\":\"15:30:00\",\"id\":227514321192628225,\"created_at\":\"2024-12-18T19:40:41.184549+08:00\",\"identify\":2024080313,\"age\":23}",
+        "{\"score\":91.5,\"birthday\":\"0001-01-01T00:00:00Z\",\"name\":\"kitty\",\"article\":\"Artificial Intelligence\",\"exam_time\":\"15:30:00\",\"updated_at\":\"2024-12-17T20:49:17.568859+08:00\",\"id\":227169198692904961,\"age\":23,\"created_at\":\"2024-12-17T20:49:17.568853+08:00\",\"gender\":2,\"identify\":2024080313,\"image\":\"SU1BR0UuUENH\"}"
+    ],
+    "score": [
+        23,
+        23,
+        23
+    ]
+}
+```
+
+### 分页返回
+当我们请求参数 page > 1 时，返回结果会以分页形式返回：
+
+请求：
+```json
+{
+    "name": "student",
+    "op": "find_all",
+    "page": 1,
+    "size": 10
+}
+```
+
+返回结果，我们将分页信息放在 detail 中，数据结果放在 data 中：
+```json
+{
+    "detail": {
+        "total": 2,
+        "total_page": 1,
+        "page": 1,
+        "size": 10
     },
-    "grade":[
+    "data": [
         {
-            "userid":32346,
-            "subject_id":1,
-            "score":99
+            "updated_at": "2024-12-12T19:30:37+08:00",
+            "identify": 2024061211,
+            "name": "caohao",
+            "score": 89.7,
+            "image": "SU1BR0UuUENH",
+            "exam_time": "15:30:00",
+            "created_at": "2024-11-30T20:53:57+08:00",
+            "id": 1,
+            "gender": 1,
+            "age": 19,
+            "article": "Compilation theory, architecture of large systems, and development of Reduced Instruction Set (RISC) computers",
+            "birthday": "1995-03-23T00:00:00+08:00"
         },
         {
-            "userid":32346,
-            "subject_id":2,
-            "score":98
-        },
-        {
-            "userid":32346,
-            "subject_id":3,
-            "score":93
+            "updated_at": "2024-12-12T20:41:00+08:00",
+            "identify": 2024070733,
+            "gender": 1,
+            "age": 17,
+            "image": "SU1BR0UuUENH",
+            "exam_time": "14:30:00",
+            "birthday": "1993-02-22T00:00:00+08:00",
+            "created_at": "2024-11-30T20:57:03+08:00",
+            "id": 2,
+            "name": "jerry",
+            "score": 92.3,
+            "article": "Design and analysis of algorithms and data structures"
         }
     ]
 }
 ```
 
-* 引用使用示例如下：grade 的查询条件 userid 引用自 student 的结果。所以，grade 需要等待 student 查询完成之后才可以查询，在使用应用的时候必须注意，被引用执行单元必须插在引用执行单元的前面。
-```json
-[
-    {
-        "name":"student",
-        "op":"find_all",
-        "where":{
-            "age >":15
-        }
-    },
-    {
-        "name":"grade",
-        "op":"find_all",
-        "where":{
-            "userid@":"student.userid",
-            "score >":90
-        }
-    }
-]
+实际上统一接入服务返回的分页数据结构如下：
+
+```go
+// PageResult 当 page > 1 时会返回分页结果
+type PageResult struct {
+	Detail *Detail       `orm:"detail,omitempty" json:"detail,omitempty"` // 查询细节信息
+	Data   []interface{} `orm:"data,omitempty" json:"data,omitempty"`     // 分页结果
+}
+
+// Detail 其他查询细节信息，例如 分页信息、滚动翻页信息、其他信息等。
+type Detail struct {
+	Total     uint64                 `orm:"total" json:"total"`                               // 总数
+	TotalPage uint32                 `orm:"total_page,omitempty" json:"total_page,omitempty"` // 总页数
+	Page      int                    `orm:"page,omitempty" json:"page,omitempty"`             // 当前分页
+	Size      int                    `orm:"size,omitempty" json:"size,omitempty"`             // 每页大小
+	Scroll    *Scroll                `orm:"scroll,omitempty" json:"scroll,omitempty"`         // 滚动翻页信息
+	Extras    map[string]interface{} `orm:"extras,omitempty" json:"extras,omitempty"`         // 更多详细信息
+}
 ```
 
-* wait 关键字使用示例如下：我们需要将新增学生 和 科目的插入完成之后，才执行查询动作，查出最新的学生。
+## 并行查询
+### 并发同时执行
+为了高效并发，我们可以将多个语句组织在一起，一同发送到到数据统一接入服务，由数据统一接入服务并发执行，并返回结果。
+
+`注意：如果并行执行访问同一个数据时，为了区别，可以像下面一样在括号里面加别名：redis_student(zadd) 和 redis_student(range)。`<br><br>
+
+`另外我们注意看返回结果，zrangebyscore 仅返回了2条数据，实际上应该有3条数据，也就是 zadd 的数据并未出现在 zrangebyscore 结果中， 这是
+因为在并发执行过程中，两个语句是同时执行，我们并不知道哪个语句先执行完，如果 zrangebyscore 先于 zadd 执行完成，就会导致数据还未插入完成就
+获取了排序结果，这显然与我们的预期不符，所以当遇到两条执行语句有先后要求时，我们最好拆成两条独立的语句先后执行，而不是放在一个并发执行中。`
+
 ```json
 [
     {
-        "name":"student(insert_student)",
-        "op":"insert",
-        "data":{
-            "sex":"male",
-            "age":31,
-            "name":"smallhowcao",
-            "status":1
-        }
-    },
-    {
-        "name":"subject",
-        "op":"insert",
-        "data":[
-            {
-                "subject":"语文",
-                "teacher":"刘老师"
-            },
-            {
-                "subject":"数学",
-                "teacher":"张老师"
-            }
+        "name": "redis_student(zadd)",
+        "op": "zadd",
+        "key": "student_age_rank",
+        "args": [
+            23,
+            "{\"id\":227523618735665153,\"gender\":2,\"age\":23,\"name\":\"kitty\",\"identify\":2024080313,\"created_at\":\"2024-12-18T20:17:37.89164+08:00\",\"image\":\"SU1BR0UuUENH\",\"birthday\":\"1987-08-27T00:00:00Z\",\"updated_at\":\"2024-12-18T20:17:37.891649+08:00\",\"article\":\"Artificial Intelligence\",\"exam_time\":\"15:30:00\",\"score\":91.5}"
         ]
     },
     {
-        "name":"student",
-        "wait":["insert_student","subject"],
-        "op":"find_all"
+        "name": "redis_student(range)",
+        "op": "zrangebyscore",
+        "key": "student_age_rank",
+        "args": [
+            10,
+            50
+        ],
+        "params": {
+            "with_scores": true
+        }
     }
 ]
 ```
 
-### 1.1.3 嵌套查询
-嵌套查询，是指的我们查出父查询的结果之后，会到子查询根据引用标识符 `@` 自动识别将查到的结果嵌套于哪个父查询 ：
-* 请求
+### 引用（同层级）
+引用是指的一个查询单元的请求参数来自另外一个查询的返回结果，当出现引用的时候，并行执行会退化为串行执行。引用有多种方式，
+如下 {"@identify": "student.identify"} 中 map 的 key 以`@`开头的时候，表示 identify 的值引用自 student 执行单元
+的返回结果的 identify 字段。`.` 之前表示引用路径，之后表示引用的 field， 被引用的执行单元必须在引用的执行单元之前被执行，否则就会报错。
+
+请求：
 ```json
 [
     {
-        "name":"student",
-        "op":"find_all",
-        "where":{
-            "sex":"male",
-            "age >":15
+        "name": "student",
+        "op": "find_all",
+        "page": 1,
+        "size": 10
+    },
+    {
+        "name": "student_course",
+        "op": "find_all",
+        "where": {
+            "@identify": "student.identify"
+        }
+    }
+]
+```
+
+返回：
+```json
+{
+    "student": {
+        "detail": {
+            "total": 2,
+            "total_page": 1,
+            "page": 1,
+            "size": 10
         },
-        "sub":[
+        "data": [
             {
-                "name":"grade",
-                "op":"find_all",
-                "where":{
-                    "score >":90,
-					"@userid":"/student.userid",
-					"@status":"/student.status"
+                "score": 89.7,
+                "image": "SU1BR0UuUENH",
+                "article": "Compilation theory, architecture of large systems, and development of Reduced Instruction Set (RISC) computers",
+                "exam_time": "15:30:00",
+                "gender": 1,
+                "identify": 2024061211,
+                "age": 19,
+                "name": "caohao",
+                "birthday": "1995-03-23T00:00:00+08:00",
+                "created_at": "2024-11-30T20:53:57+08:00",
+                "updated_at": "2024-12-12T19:30:37+08:00",
+                "id": 1
+            },
+            {
+                "article": "Design and analysis of algorithms and data structures",
+                "exam_time": "14:30:00",
+                "birthday": "1993-02-22T00:00:00+08:00",
+                "id": 2,
+                "gender": 1,
+                "age": 17,
+                "name": "jerry",
+                "score": 92.3,
+                "created_at": "2024-11-30T20:57:03+08:00",
+                "updated_at": "2024-12-12T20:41:00+08:00",
+                "identify": 2024070733,
+                "image": "SU1BR0UuUENH"
+            }
+        ]
+    },
+    "student_course": [
+        {
+            "id": 1,
+            "identify": 2024061211,
+            "course": "Math",
+            "hours": 54
+        },
+        {
+            "id": 2,
+            "identify": 2024061211,
+            "course": "Physics",
+            "hours": 32
+        },
+        {
+            "course": "English",
+            "hours": 68,
+            "id": 3,
+            "identify": 2024070733
+        }
+    ]
+}
+```
+
+当引用参数是 key (string) 或者 args ([]interface{}) 而不是 where (map[string]interface{}) 的时候，
+需要 `@{}` 方式，例如 @{student.identify} 来表示该参数来自于引用 student.identify。 例如下面这个例子，
+我们需要先查询 name="caohao" 的学生，然后根据学生的 identify 来获取他的排名：
+
+请求：
+```json
+[
+    {
+        "name": "student",
+        "op": "find",
+        "where": {
+            "name": "caohao"
+        }
+    },
+    {
+        "name": "redis_student(score_rank)",
+        "op": "zrank",
+        "key": "student_score_rank",
+        "args": [
+            "@{student.identify}"
+        ]
+    }
+]
+```
+
+返回：
+```json
+{
+    "student": {
+        "article": "Compilation theory, architecture of large systems, and development of Reduced Instruction Set (RISC) computers",
+        "identify": 2024061211,
+        "score": 89.7,
+        "image": "SU1BR0UuUENH",
+        "name": "caohao",
+        "exam_time": "15:30:00",
+        "birthday": "1995-03-23T00:00:00+08:00",
+        "created_at": "2024-11-30T20:53:57+08:00",
+        "updated_at": "2024-12-12T19:30:37+08:00",
+        "id": 1,
+        "gender": 1,
+        "age": 19
+    },
+    "score_rank": 2
+}
+```
+
+当被引用的值不是一个 map，而是一个具体数值的时候，我们不需要 `.` 来指定 field，而是直接采用被引用的执行单元即可。 例如下面我们获取了
+一个学生的排名， 我们期望在一个并行执行单元中知道该排名的奖励：
+```json
+[
+    {
+        "name": "redis_student(score_rank)",
+        "op": "zrank",
+        "key": "student_score_rank",
+        "args": [
+            2024061211
+        ]
+    },
+    {
+        "name": "score_rank_reward",
+        "op": "find",
+        "where": {
+            "@rank": "score_rank"
+        }
+    }
+]
+```
+
+## 复合查询
+### 返回结构
+复合执行包含并行执行加上子查询，在复合查询的结果，如果返回的是一个数组，我们会为每个数组结果都执行一遍该查询的子查询，每个复合查询的结果
+都包含 error、is_nil、detail 和 data 4个参数，当 error 不存在或者等于 nil 的时候，则结果正常无报错，分页等详情再 detail 中，
+如果返回数据为空则 is_nil=true，当 is_nil 不存在，或者等于 false 时，返回数据存在于 data 中。子查询也在父查询的返回 data 中。
+
+```go
+package proto // "github.com/horm-database/common/proto"
+
+// CompResult 混合查询返回结果
+type CompResult struct {
+	RetBase             // 返回基础信息
+	Data    interface{} `json:"data"` // 返回数据
+}
+
+// RetBase 混合查询返回结果基础信息
+type RetBase struct {
+	Error  *Error  `json:"error,omitempty"`  // 错误返回
+	IsNil  bool    `json:"is_nil,omitempty"` // 是否为空
+	Detail *Detail `json:"detail,omitempty"` // 查询细节信息
+}
+```
+
+请求：
+```json
+[
+    {
+        "name": "student",
+        "op": "find_all",
+        "page": 1,
+        "size": 10,
+        "sub": [
+            {
+                "name": "student_course",
+                "op": "find_all",
+                "where": {
+                    "@identify": "/student.identify"
                 },
-                "sub":[
+                "size": 100,
+                "sub": [
                     {
-                        "name":"subject",
-                        "op":"find",
-                        "where":{
-                            "@id":"/student/grade.subject_id"
+                        "name": "course_info",
+                        "op": "find",
+                        "where": {
+                            "@course": "../.course"
                         }
+                    }
+                ]
+            },
+            {
+                "name": "teacher_info",
+                "op": "find_all",
+                "where": {
+                    "@teacher": "student_course/course_info.teacher"
+                },
+                "size": 100,
+                "sub": [
+                    {
+                        "name": "redis_student(test_nil)",
+                        "op": "get",
+                        "key": "not_exists"
                     }
                 ]
             }
         ]
-    }
-]
-```
-
-* 返回：
-```json
-{
-    "student":[
-        {
-            "userid":371293,
-            "class_id":1,
-            "sex":"male",
-            "age":31,
-            "name":"smallhowcao",
-            "status":1,
-            "grade":[
-                {
-                    "userid":371293,
-                    "status":1,
-                    "subject_id":1,
-                    "subject":{
-                        "id":1,
-                        "subject":"语文",
-                        "teacher":"刘老师"
-                    },
-                    "score":99
-                },
-                {
-                    "userid":371293,
-                    "status":1,
-                    "subject_id":2,
-                    "subject":{
-                        "id":2,
-                        "subject":"数学",
-                        "teacher":"张老师"
-                    },
-                    "score":98
-                },
-                {
-                    "userid":371293,
-                    "subject_id":3,
-                    "subject":{
-                        "id":3,
-                        "subject":"英语",
-                        "teacher":"曹老师"
-                    },
-                    "score":93
-                }
-            ]
-        },
-        {
-            "userid":874312,
-            "class_id":2,
-            "sex":"male",
-            "age":31,
-            "name":"smallhowcao",
-            "status":2,
-            "grade":[
-                {
-                    "userid":874312,
-                    "status":2,
-                    "subject_id":1,
-                    "subject":{
-                        "id":1,
-                        "subject":"语文",
-                        "teacher":"刘老师"
-                    },
-                    "score":99
-                },
-                {
-                    "userid":874312,
-                    "status":2,
-                    "subject_id":2,
-                    "subject":{
-                        "id":2,
-                        "subject":"数学",
-                        "teacher":"张老师"
-                    },
-                    "score":98
-                },
-                {
-                    "userid":874312,
-                    "status":2,
-                    "subject_id":3,
-                    "subject":{
-                        "id":3,
-                        "subject":"英语",
-                        "teacher":"曹老师"
-                    },
-                    "score":93
-                }
-            ]
-        }
-    ]
-}
-```
-
-## 1.2 执行单元
-`执行单元`是协议的最小数据执行单位，根据功能他们可以细分为 `变更单元` 或 `查询单元` ，每个执行单元都是对一张表或者一个es 索引的一个操作，包含增删改查等操作。执行单元之间可以是并行执行的关系，还可以存在字段引用的关系、或者嵌套关系，比如一个查询单元的 WHERE 条件中某个字段引用自另一个查询单元的查询结果，那么就需要等被引用的查询单元执行完成之后，再去执行该查询单元。<br>
-
-### 1.2.1 执行单元名与别名
-每个`执行单元`都拥有一个 name，同一个数组层级下执行单元名字不能相同，因为返回结果的格式为`map[name]interface`，name 相同会导致后面执行单元的结果覆盖前面执行单元，如果两个执行单元操作了相同的表，name 必须相同，可以使用别名，返回结果的 key 会取自别名，如下：
-* 请求
-```json
-[
-    {
-        "name":"student",
-        "op":"find",
-        "where":{
-            "userid":32881772
-        }
     },
     {
-        "name":"student(olderthan13)",
-        "op":"find_all",
-        "where":{
-            "age >":13
-        }
-    },
-    {
-        "name":"grade",
-        "op":"find_all",
-        "where":{
-            "userid@":"olderthan13.userid"
+        "name": "teacher_info(test_error)",
+        "op": "find",
+        "where": {
+            "not_exist_field": 55
         }
     }
 ]
 ```
 
-* 返回
-```
+返回：
+```json
 {
-    "student":{
-        "userid":32881772,
-        "class_id":1,
-        "sex":"male",
-        "age":31,
-        "name":"smallhowcao",
-        "status":1
+    "student": {
+        "detail": {
+            "total": 2,
+            "total_page": 1,
+            "page": 1,
+            "size": 10
+        },
+        "data": [
+            {
+                "id": 1,
+                "identify": 2024061211,
+                "gender": 1,
+                "age": 19,
+                "name": "caohao",
+                "score": 89.7,
+                "image": "SU1BR0UuUENH",
+                "article": "Compilation theory, architecture of large systems, and development of Reduced Instruction Set (RISC) computers",
+                "exam_time": "15:30:00",
+                "birthday": "1995-03-23T00:00:00+08:00",
+                "created_at": "2024-11-30T20:53:57+08:00",
+                "updated_at": "2024-12-12T19:30:37+08:00",
+                "student_course": {
+                    "data": [
+                        {
+                            "id": 1,
+                            "identify": 2024061211,
+                            "course": "Math",
+                            "hours": 54,
+                            "course_info": {
+                                "data": {
+                                    "course": "Math",
+                                    "teacher": "Simon",
+                                    "time": "11:00:00"
+                                }
+                            }
+                        },
+                        {
+                            "id": 2,
+                            "identify": 2024061211,
+                            "course": "Physics",
+                            "hours": 32,
+                            "course_info": {
+                                "data": {
+                                    "course": "Physics",
+                                    "teacher": "Richard",
+                                    "time": "14:00:00"
+                                }
+                            }
+                        }
+                    ]
+                },
+                "teacher_info": {
+                    "data": [
+                        {
+                            "teacher": "Richard",
+                            "age": 57,
+                            "test_nil": {
+                                "is_nil": true
+                            }
+                        },
+                        {
+                            "teacher": "Simon",
+                            "age": 61,
+                            "test_nil": {
+                                "is_nil": true
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "id": 2,
+                "identify": 2024070733,
+                "gender": 1,
+                "age": 17,
+                "name": "jerry",
+                "score": 92.3,
+                "image": "SU1BR0UuUENH",
+                "article": "Design and analysis of algorithms and data structures",
+                "exam_time": "14:30:00",
+                "birthday": "1993-02-22T00:00:00+08:00",
+                "created_at": "2024-11-30T20:57:03+08:00",
+                "updated_at": "2024-12-12T20:41:00+08:00",
+                "student_course": {
+                    "data": [
+                        {
+                            "id": 3,
+                            "identify": 2024070733,
+                            "course": "English",
+                            "hours": 68,
+                            "course_info": {
+                                "data": {
+                                    "course": "English",
+                                    "teacher": "Dennis",
+                                    "time": "15:30:00"
+                                }
+                            }
+                        }
+                    ]
+                },
+                "teacher_info": {
+                    "data": [
+                        {
+                            "teacher": "Dennis",
+                            "age": 39,
+                            "test_nil": {
+                                "is_nil": true
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
     },
-    "olderthan13":[
-        {
-            "userid":37122393,
-            "class_id":1,
-            "sex":"male",
-            "age":19,
-            "name":"mark",
-            "status":1
-        },
-        {
-            "userid":87438832,
-            "class_id":2,
-            "sex":"male",
-            "age":23,
-            "name":"kidy",
-            "status":2
+    "test_error": {
+        "error": {
+            "type": 2,
+            "code": 1054,
+            "msg": "mysql query error: [Unknown column 'not_exist_field' in 'where clause']"
         }
-    ],
-    "grade":[
-        {
-            "userid":37122393,
-            "status":1,
-            "subject_id":1,
-            "score":99
-        },
-        {
-            "userid":37122393,
-            "status":1,
-            "subject_id":2,
-            "score":98
-        },
-        {
-            "userid":87438832,
-            "status":2,
-            "subject_id":1,
-            "score":89
-        },
-        {
-            "userid":87438832,
-            "status":2,
-            "subject_id":2,
-            "score":91
-        }
-    ]
+    }
 }
 ```
+### 引用路径
+不同于并行查询的所有查询单元都在同一个层级，在复合查询中，有了子查询，在不同层级的情况下，引用会变得复杂，我们可以采用相对路径和绝对路径，
+来指向我们需要被引用的查询单元。 如果 `/` 开头，则表是该路径属于绝对路径，例如上面实例中的 `/student.identify`，否则，就是相对路径，
+相对路径在计算的时候，会把当前层级所在的父查询的绝对路径加在相对路径前，例如上面案例的 `student_course/course_info.teacher` ，
+会变成 `/student/student_course/course_info.teacher`如果以 `../` 开头的相对路径，则会把`../` 转化为父查询的绝对路径，
+例如上面案例的 `../.course`，会变成 `/student/student_course.course`，在相对路径转化为绝对路径之后，再根据规则获取指定路径的引用结果。
 
-每个 name 对应服务器后端一个 存储引擎单元，他可以是 mysql 的表、es 的索引等等，我们可以通过 name 去配置里面找到对应的库、表、索引等信息，然后做对应的操作。
 
+# 测试
 #### 1.2.1.1 分片、分库、分表
 如果有分库、分表、分片等需求，客户端可以通过 shard 字段，告诉服务端我的分片参数，然后在服务端配置分片函数 ShardFunc 来实现复杂的分库、分表、分片逻辑。
 
