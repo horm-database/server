@@ -1,6 +1,11 @@
 package auth
 
 import (
+	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
+
 	cc "github.com/horm-database/common/consts"
 	"github.com/horm-database/common/errs"
 	"github.com/horm-database/orm/obj"
@@ -89,13 +94,54 @@ func TableVerify(source *obj.Tree, appid uint64, tables []string, verifyRule str
 	}
 
 	for _, t := range tables {
-		if t != verifyRule {
+		if !matchTable(t, verifyRule) {
 			return errs.Newf(errs.RetTableVerifyFailed,
 				"[%s] verify failed, appid [%d] is not allowed to access table [%v]", source.GetPath(), appid, tables)
 		}
 	}
 
 	return nil
+}
+
+func matchTable(table, verifyRule string) bool {
+	rules := strings.Split(verifyRule, ",")
+	for _, rule := range rules {
+		if rule == table {
+			return true
+		}
+
+		re := regexp.MustCompile(`(\d+)(\.\.\.)(\d+)`)
+		matchs := re.FindAllStringSubmatch(rule, -1)
+		if matchs != nil && len(matchs) == 1 && len(matchs[0]) == 4 {
+			ruleArr := strings.Split(rule, matchs[0][0])
+			startIndex, err := strconv.Atoi(matchs[0][1])
+			if err != nil {
+				continue
+			}
+			endIndex, err := strconv.Atoi(matchs[0][3])
+			if err != nil {
+				continue
+			}
+			if endIndex < startIndex {
+				continue
+			}
+			for i := startIndex; i <= endIndex; i++ {
+				ruleStr := ruleArr[0] + fmt.Sprint(i) + ruleArr[1]
+				if table == ruleStr {
+					return true
+				}
+			}
+		}
+
+		if strings.HasPrefix(rule, "regex/") && strings.HasSuffix(rule, "/") {
+			ruleStr := rule[6 : len(rule)-1]
+			if regexp.MustCompile(ruleStr).MatchString(table) {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 func recheck(recheck bool) string {
