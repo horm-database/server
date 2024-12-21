@@ -1,4 +1,4 @@
-# 一 数据统一接入协议
+# 数据统一接入协议
 数据统一接入协议是为了不同类型数据库的访问而设计的一套包含增删改查等等一系列操作的协议。接入层采用同一套协议， 可以操作数据统一接入服务配置的
 多种存储引擎，如：mysql、clickhouse、postgres等类 sql 协议引擎，还有 redis 协议引擎，另外还支持  elastic search 引擎。<br>
 在数据统一接入服务，我们可以将数据的采集、更新加工、展示、监控流向一站式的把控。
@@ -7,7 +7,7 @@
 建表语句：
 ```sql
 CREATE TABLE `student` (
-    `id` int NOT NULL AUTO_INCREMENT,
+    `id` bigint unsigned NOT NULL AUTO_INCREMENT,
     `identify` bigint NOT NULL COMMENT '学生编号',
     `gender` tinyint NOT NULL DEFAULT '1' COMMENT '1-male 2-female',
     `age` int unsigned NOT NULL DEFAULT '0' COMMENT '年龄',
@@ -88,7 +88,6 @@ elastic 请求或 redis 请求，并将执行结果返回到客户端。
 一个完整的执行单元包含如下信息：
 ```go
 // github.com/horm-database/common/proto
-
 package proto
 
 import (
@@ -119,6 +118,9 @@ type Unit struct {
 	Group  []string               `json:"group,omitempty"`  // group by
 	Having map[string]interface{} `json:"having,omitempty"` // group by condition
 
+	// for databases such as mysql ...
+	Join []*Join `json:"join,omitempty"`
+
 	// for databases such as elastic ...
 	Type   string  `json:"type,omitempty"`   // type, such as elastic`s type, it can be customized before v7, and unified as _doc after v7
 	Scroll *Scroll `json:"scroll,omitempty"` // scroll info
@@ -131,7 +133,7 @@ type Unit struct {
 	// bytes 字节流
 	Bytes []byte `json:"bytes,omitempty"`
 
-	// params 与数据库特性相关的附加参数，例如 mysql 的join，redis 的 WITHSCORES，以及 elastic 的 refresh、collapse、runtime_mappings、track_total_hits 等等。
+	// params 与数据库特性相关的附加参数，例如 redis 的 WITHSCORES，以及 elastic 的 refresh、collapse、runtime_mappings、track_total_hits 等等。
 	Params map[string]interface{} `json:"params,omitempty"`
 
 	// 直接送 Query 语句，需要拥有库的 表权限、或 root 权限。具体参数为 args
@@ -149,52 +151,70 @@ type Scroll struct {
 	ID   string `json:"id,omitempty"`   // 滚动 id
 	Info string `json:"info,omitempty"` // 滚动查询信息，如时间
 }
+
+type Join struct {
+	Type  string            `json:"type,omitempty"`
+	Table string            `json:"table,omitempty"`
+	Using []string          `json:"using,omitempty"`
+	On    map[string]string `json:"on,omitempty"`
+}
 ```
 
 ## 别名
 如果我们用到 mysql 的别名，或者在并发查询、复合查询模式下、同一层级的多个查询单元如果访问同一张表，为了结果的正常，我们必须在括号里加上别名，
-如下代码的`redis_student(zadd)` 和 `redis_student(range_by_score)` ，我们都是访问 redis_student。
+如下代码的`student(add)` 和 `student(find)` ，我们都是访问 student。
 ```json
 [
-    {
-        "name": "redis_student(zadd)",
-        "op": "zadd",
-        "key": "student_age_rank",
-        "args": [
-            23,
-            "{\"image\":\"SU1BR0UuUENH\",\"birthday\":\"0001-01-01T00:00:00Z\",\"name\":\"kitty\",\"article\":\"Artificial Intelligence\",\"updated_at\":\"2024-12-18T19:40:41.184551+08:00\",\"gender\":2,\"score\":91.5,\"exam_time\":\"15:30:00\",\"id\":227514321192628225,\"created_at\":\"2024-12-18T19:40:41.184549+08:00\",\"identify\":2024080313,\"age\":23}"
-        ]
-    },
-    {
-        "name": "redis_student(range)",
-        "op": "zrangebyscore",
-        "key": "student_age_rank",
-        "args": [
-            10,
-            50
-        ],
-        "params": {
-            "with_scores": true
-        }
+  {
+    "name": "student(add)",
+    "op": "insert",
+    "data": {
+      "id": 227759629650636801,
+      "identify": 2024080313,
+      "name": "kitty",
+      "image": "SU1BR0UuUENH",
+      "article": "Artificial Intelligence",
+      "created_at": "2024-12-19T11:55:27.278103+08:00",
+      "updated_at": "2024-12-19T11:55:27.278105+08:00",
+      "age": 23,
+      "birthday": "1987-08-27T00:00:00Z",
+      "gender": 2,
+      "score": 91.5,
+      "exam_time": "15:30:00"
     }
+  },
+  {
+    "name": "student(find)",
+    "op": "find",
+    "where": {
+      "@id": "add.id"
+    }
+  }
 ]
 ```
 
-以下是上面请求的返回结果，是一个 map，其中 map 的 key 就是执行单元的名称或别名，如果都用 redist_student，则无法区分是返回
+以下是上面请求的返回结果，是一个 map，其中 map 的 key 就是执行单元的名称或别名，如果都用 student，则无法区分是返回
 是哪个执行单元的结果，而且会丢失一个执行单元的结果，这时候需要用别名来区别。
 ```json
 {
-    "zadd": 1,
-    "range": {
-        "member": [
-            "{\"image\":\"SU1BR0UuUENH\",\"birthday\":\"0001-01-01T00:00:00Z\",\"name\":\"kitty\",\"article\":\"Artificial Intelligence\",\"updated_at\":\"2024-12-18T19:40:41.184551+08:00\",\"gender\":2,\"score\":91.5,\"exam_time\":\"15:30:00\",\"id\":227514321192628225,\"created_at\":\"2024-12-18T19:40:41.184549+08:00\",\"identify\":2024080313,\"age\":23}",
-            "{\"score\":91.5,\"birthday\":\"0001-01-01T00:00:00Z\",\"name\":\"kitty\",\"article\":\"Artificial Intelligence\",\"exam_time\":\"15:30:00\",\"updated_at\":\"2024-12-17T20:49:17.568859+08:00\",\"id\":227169198692904961,\"age\":23,\"created_at\":\"2024-12-17T20:49:17.568853+08:00\",\"gender\":2,\"identify\":2024080313,\"image\":\"SU1BR0UuUENH\"}"
-        ],
-        "score": [
-            23,
-            23
-        ]
-    }
+  "add": {
+    "id": "227759629650636801",
+    "rows_affected": 1
+  },
+  "find": {
+    "id": 227759629650636801,
+    "name": "kitty",
+    "article": "Artificial Intelligence",
+    "created_at": "2024-12-19T11:55:27+08:00",
+    "birthday": "1987-08-27T00:00:00+09:00",
+    "updated_at": "2024-12-19T11:55:27+08:00",
+    "identify": 2024080313,
+    "gender": 2,
+    "age": 23,
+    "score": 91.5,
+    "image": "SU1BR0UuUENH",
+    "exam_time": "15:30:00"
+  }
 }
 ```
 
@@ -323,10 +343,7 @@ SELECT  `sc`.* , `s`.`name`  FROM `student_course` AS `sc`
   "name": "redis_student",
   "op": "zrangebyscore",
   "key": "student_age_rank",
-  "args": [
-    10,
-    50
-  ],
+  "args": [10, 50],
   "params": {
     "with_scores": true
   }
@@ -449,10 +466,7 @@ type Detail struct {
         "name": "redis_student(range)",
         "op": "zrangebyscore",
         "key": "student_age_rank",
-        "args": [
-            10,
-            50
-        ],
+        "args": [10, 50],
         "params": {
             "with_scores": true
         }
@@ -566,9 +580,7 @@ type Detail struct {
         "name": "redis_student(score_rank)",
         "op": "zrank",
         "key": "student_score_rank",
-        "args": [
-            "@{student.identify}"
-        ]
+        "args": ["@{student.identify}"]
     }
 ]
 ```
@@ -602,9 +614,7 @@ type Detail struct {
         "name": "redis_student(score_rank)",
         "op": "zrank",
         "key": "student_score_rank",
-        "args": [
-            2024061211
-        ]
+        "args": [2024061211]
     },
     {
         "name": "score_rank_reward",
