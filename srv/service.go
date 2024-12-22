@@ -85,7 +85,7 @@ func (s *service) Serve() error {
 	pid := os.Getpid()
 
 	if err := s.opts.Transport.Serve(s.ctx, &s.opts.TransportOptions); err != nil {
-		log.Errorf(codec.GCtx, errs.RetSystem,
+		log.Errorf(codec.GCtx, errs.ErrSystem,
 			"[%d] service %s ListenAndServe fail:%v", pid, s.opts.ServiceName, err)
 		return err
 	}
@@ -93,7 +93,7 @@ func (s *service) Serve() error {
 	if s.opts.Registry != nil {
 		if err := s.opts.Registry.Register(s.opts.ServiceName, s.opts.Address); err != nil {
 			// if registry fails, service needs to be closed and error should be returned.
-			log.Errorf(codec.GCtx, errs.RetSystem,
+			log.Errorf(codec.GCtx, errs.ErrSystem,
 				"[%d] service %s register fail: %v", pid, s.opts.ServiceName, err)
 			return err
 		}
@@ -161,7 +161,7 @@ func (s *service) Close(ch chan struct{}) {
 
 	if s.opts.Registry != nil {
 		if err := s.opts.Registry.Deregister(s.opts.ServiceName); err != nil {
-			log.Errorf(codec.GCtx, errs.RetSystem,
+			log.Errorf(codec.GCtx, errs.ErrSystem,
 				"[%d] deregister service %s fail: %s", pid, s.opts.ServiceName, err.Error())
 		}
 	}
@@ -222,7 +222,7 @@ func (s *service) decode(msg *cc.Msg, reqBuf []byte) ([]byte, error) {
 	reqBodyBuf, err := s.opts.Codec.Decode(msg, reqBuf)
 	if err != nil {
 		metrics.ServiceCodecDecodeFail.Incr()
-		return nil, errs.Newf(errs.RetServerDecodeFail, "service codec Decode: %v", err)
+		return nil, errs.Newf(errs.ErrServerDecode, "service codec Decode: %v", err)
 	}
 
 	msg.WithEnv(s.opts.Env)
@@ -251,7 +251,7 @@ func (s *service) handleResponse(ctx context.Context, msg *cc.Msg, respBody inte
 	respBodyBuf, err := codec.Serialize(ctx, respBody)
 	if err != nil {
 		metrics.ServiceCodecMarshalFail.Incr()
-		err = errs.Newf(errs.RetServerEncodeFail, "service codec Marshal: %v", err)
+		err = errs.Newf(errs.ErrServerEncode, "service codec Marshal: %v", err)
 
 		// respBodyBuf will be nil if marshalling fails, respond only error code to database.
 		return s.encode(msg, respBodyBuf, err)
@@ -266,7 +266,7 @@ func (s *service) handle(ctx context.Context, msg *cc.Msg, reqBodyBuf []byte) (i
 		handler, ok = s.handlers["default"] // 默认路由
 		if !ok {
 			metrics.ServiceHandleRPCNameInvalid.Incr()
-			return nil, errs.New(errs.RetServerNoFunc,
+			return nil, errs.New(errs.ErrServerNoFunc,
 				fmt.Sprintf("service handle: rpc name %s invalid, current service:%s",
 					msg.CalleeMethod(), msg.CalleeServiceName()))
 		}
@@ -304,7 +304,7 @@ func apiHandle(ctx context.Context, handler Handler, msg *cc.Msg, reqBody []byte
 	defer func() {
 		if e := recover(); e != nil {
 			metrics.IncrCounter("PanicNum", 1)
-			err = errs.New(errs.RetPanic, fmt.Sprint(e))
+			err = errs.New(errs.ErrPanic, fmt.Sprint(e))
 		}
 
 		fields := []logger.Field{}

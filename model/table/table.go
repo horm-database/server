@@ -155,7 +155,7 @@ func SetDB(db *obj.TblDB) {
 
 	err = util.ParseConnFromAddress(db.Addr)
 	if err != nil {
-		log.Errorf(sc.GCtx, errs.RetDBAddressParseError, "parse db %s address error: %v", db.Name, err)
+		log.Errorf(sc.GCtx, errs.ErrDBAddressParse, "parse db %s address error: %v", db.Name, err)
 	}
 
 	dbMap[db.Id] = db
@@ -234,7 +234,7 @@ func InitTablePlugin(tableFitlers []*TblTablePlugin) error {
 		if tf.ScheduleConfig != "" {
 			err := json.Api.Unmarshal([]byte(tf.ScheduleConfig), &tf.ScheduleConf)
 			if err != nil {
-				log.Errorf(sc.GCtx, errs.RetPluginConfigDecode,
+				log.Errorf(sc.GCtx, errs.ErrPluginConfigDecode,
 					"unmarshal plugin schedule config error=[%v], plugin_id=[%d], plugin_version=[%d], schedule_config=[%s]",
 					err, tf.PluginID, tf.PluginVersion, tf.ScheduleConfig)
 			}
@@ -350,7 +350,7 @@ func getPluginConfig(pluginID, pluginVersion int, config string) map[string]inte
 
 	err := json.Api.Unmarshal([]byte(config), &result)
 	if err != nil {
-		log.Errorf(sc.GCtx, errs.RetPluginConfigDecode,
+		log.Errorf(sc.GCtx, errs.ErrPluginConfigDecode,
 			"unmarshal plugin config error=[%v], plugin_id=[%d], plugin_version=[%d], config=[%s]",
 			err, pluginID, pluginVersion, config)
 		return nil
@@ -374,7 +374,7 @@ func SortTablePlugins(typ string, tablePlugins []*TblTablePlugin) ([]*TblTablePl
 	}
 
 	if head == nil {
-		return nil, errs.Newf(errs.RetPluginFrontNotFind,
+		return nil, errs.Newf(errs.ErrPrefixPluginNotFount,
 			"table_id %d not find head of %s", tablePlugins[0].TableId, typ)
 	}
 
@@ -385,7 +385,7 @@ func SortTablePlugins(typ string, tablePlugins []*TblTablePlugin) ([]*TblTablePl
 	for i := 0; i < len(tablePlugins)-1; i++ {
 		frontTablePlugin := findFrontTablePlugin(currentTablePlugin, tablePlugins)
 		if frontTablePlugin == nil {
-			return nil, errs.Newf(errs.RetPluginFrontNotFind, "%s %d not find front table_plugin=%d",
+			return nil, errs.Newf(errs.ErrPrefixPluginNotFount, "%s %d not find prefix table_plugin=%d",
 				typ, currentTablePlugin.Id, currentTablePlugin.Front)
 		}
 

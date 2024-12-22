@@ -19,7 +19,7 @@ func PermissionCheck(source *obj.Tree, appid uint64, op, query string, isRecheck
 	//访问者信息
 	appInfo := table.GetAppInfo(appid)
 	if appInfo == nil {
-		return errs.Newf(errs.RetNotFindAppid, "[%s] not find app info of appid %d", source.GetPath(), appid)
+		return errs.Newf(errs.ErrAppidNotFound, "[%s] not find app info of appid %d", source.GetPath(), appid)
 	}
 
 	// 表信息
@@ -41,7 +41,7 @@ func PermissionCheck(source *obj.Tree, appid uint64, op, query string, isRecheck
 			return nil
 		}
 
-		return errs.Newf(errs.RetHasNoDBRight, "[%s]%s appid(%d) has no permission to %s %s",
+		return errs.Newf(errs.ErrHasNoDBRight, "[%s]%s appid(%d) has no permission to %s %s",
 			source.GetPath(), recheck(isRecheck), appid, op, source.GetName())
 	}
 
@@ -52,7 +52,7 @@ func PermissionCheck(source *obj.Tree, appid uint64, op, query string, isRecheck
 			return nil
 		}
 
-		return errs.Newf(errs.RetHasNoDBRight, "[%s]%s appid(%d) has no permission to query %s directly",
+		return errs.Newf(errs.ErrHasNoDBRight, "[%s]%s appid(%d) has no permission to query %s directly",
 			source.GetPath(), recheck(isRecheck), appid, source.GetName())
 	}
 
@@ -74,7 +74,7 @@ func PermissionCheck(source *obj.Tree, appid uint64, op, query string, isRecheck
 		}
 	}
 
-	return errs.Newf(errs.RetHasNoTableRight, "[%s]%s appid [%d] has no permission to %s table %s",
+	return errs.Newf(errs.ErrHasNoTableRight, "[%s]%s appid [%d] has no permission to %s table %s",
 		source.GetPath(), recheck(isRecheck), appid, op, source.GetName())
 }
 
@@ -95,7 +95,7 @@ func TableVerify(source *obj.Tree, appid uint64, tables []string, verifyRule str
 
 	for _, t := range tables {
 		if !matchTable(t, verifyRule) {
-			return errs.Newf(errs.RetTableVerifyFailed,
+			return errs.Newf(errs.ErrTableVerify,
 				"[%s] verify failed, appid [%d] is not allowed to access table [%v]", source.GetPath(), appid, tables)
 		}
 	}

@@ -64,7 +64,7 @@ func createTree(head, parent *obj.Tree, units []*proto.Unit, requestHeader *prot
 
 		if len(unit.Trans) > 1 {
 			if parent != nil && parent.TransInfo != nil { //父节点与所有子节点同属于一个事务，无需在子节点再重复定义事务节点
-				return errs.Newf(errs.RetSameTransaction,
+				return errs.Newf(errs.ErrSameTransaction,
 					"parent and all child nodes belong to the same transaction, no need to repeat the definition")
 			}
 
@@ -116,7 +116,7 @@ func createTransTree(head *obj.Tree, units []*proto.Unit, requestHeader *proto.R
 
 	for i, unit := range units {
 		if len(unit.Trans) != 0 { //所有兄弟节点同属于一个事务，无需重复定义事务
-			return errs.Newf(errs.RetSameTransaction,
+			return errs.Newf(errs.ErrSameTransaction,
 				"all sibling nodes belong to the same transaction, no need to repeat the definition")
 		}
 
@@ -263,7 +263,7 @@ func finishTrans(node *obj.Tree) {
 			txClient := node.TransInfo.GetTxClient(node.TransInfo.DBs[i])
 			err := txClient.FinishTx(node.Error)
 			if err != nil {
-				node.Error = errs.Newf(errs.RetTransaction,
+				node.Error = errs.Newf(errs.ErrTransaction,
 					"rollback error: %v, source error is [%s]", err, node.Error.Error())
 			}
 		}
@@ -272,7 +272,7 @@ func finishTrans(node *obj.Tree) {
 			txClient := node.TransInfo.GetTxClient(node.TransInfo.DBs[i])
 			err := txClient.FinishTx(nil)
 			if err != nil {
-				node.Error = errs.Newf(errs.RetTransaction,
+				node.Error = errs.Newf(errs.ErrTransaction,
 					"rollback error: %v, source error is [%s]", err, node.Error.Error())
 			}
 		}
@@ -418,7 +418,7 @@ func InitTree(node *obj.Tree, unit *proto.Unit, requestHeader *proto.RequestHead
 	property.Op = strings.ToLower(unit.Op)
 	property.Name, property.Alias = ut.Alias(unit.Name)
 	if property.Name == "" {
-		return errs.Newf(errs.RetUnitNameEmpty, "unit name is empty")
+		return errs.Newf(errs.ErrUnitNameEmpty, "unit name is empty")
 	}
 
 	if property.Alias == "" {
@@ -434,20 +434,20 @@ func InitTree(node *obj.Tree, unit *proto.Unit, requestHeader *proto.RequestHead
 	}
 
 	if hasDuplicateKey(node, property.Key) {
-		return errs.Newf(errs.RetRepeatNameAlias, "has repeat name or alias in same layer, name=[%s]", property.Path)
+		return errs.Newf(errs.ErrRepeatNameAlias, "has repeat name or alias in same layer, name=[%s]", property.Path)
 	}
 
 	if len(unit.Trans) == 0 {
 		tables, table, db, ambiguous := table.GetTableAndDB(property.Name, unit.Shard)
 		if ambiguous {
-			return errs.Newf(errs.RetNameAmbiguity,
+			return errs.Newf(errs.ErrNameAmbiguity,
 				"[%s] there are multiple tables with the same name, please input namespace to separate", property.Path)
 		}
 
 		property.Table = table
 
 		if len(tables) == 0 || table == nil || db == nil {
-			return errs.Newf(errs.RetNotFindName, "[%s] not find table or db, name is %s", property.Path, unit.Name)
+			return errs.Newf(errs.ErrNotFindName, "[%s] not find table or db, name is %s", property.Path, unit.Name)
 		}
 
 		property.Tables = tables

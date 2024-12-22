@@ -15,14 +15,14 @@ import (
 // Query data query api
 func Query(ctx context.Context, head *proto.RequestHeader, reqBuf []byte) (interface{}, error) {
 	if !auth.SignSuccess(head) {
-		//return nil, errs.Newf(errs.RetServerAuthFail, "signature failed")
+		//return nil, errs.Newf(errs.ErrAuthFail, "signature failed")
 	}
 
 	var err error
 	if head.Compress == consts.Compression {
 		reqBuf, err = compress.Decompress(reqBuf)
 		if err != nil {
-			return nil, errs.Newf(errs.RetServerDecompressFail, "request body decompress error: %s", err.Error())
+			return nil, errs.Newf(errs.ErrServerDecompress, "request body decompress error: %s", err.Error())
 		}
 	}
 
@@ -36,7 +36,7 @@ func Query(ctx context.Context, head *proto.RequestHeader, reqBuf []byte) (inter
 			if uint32(parseQueryMode) != head.QueryMode {
 				parseQueryModeDesc, _ := consts.QueryModeDesc[parseQueryMode]
 				inputQueryModeDesc, _ := consts.QueryModeDesc[int8(head.QueryMode)]
-				return nil, errs.Newf(errs.RetParamInvalid, "query mode is invalid, "+
+				return nil, errs.Newf(errs.ErrParamInvalid, "query mode is invalid, "+
 					"it should be [%s], but input is [%s]", parseQueryModeDesc, inputQueryModeDesc)
 			}
 		}
@@ -48,7 +48,7 @@ func Query(ctx context.Context, head *proto.RequestHeader, reqBuf []byte) (inter
 	}
 
 	if err != nil {
-		return nil, errs.Newf(errs.RetServerDecodeFail, "request body codec unmarshal error: %s", err.Error())
+		return nil, errs.Newf(errs.ErrServerDecode, "request body codec unmarshal error: %s", err.Error())
 	}
 
 	return logic.Parse(ctx, head, units)

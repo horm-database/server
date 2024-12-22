@@ -256,7 +256,7 @@ func insertToDB(ctx context.Context, desc string, db *obj.TblDB,
 	var err error
 	batchInsertItem.Datas, err = util.FormatDatas(batchInsertItem.Datas, batchInsertItem.DataType)
 	if err != nil {
-		log.Errorf(ctx, RetFormatDataError, "%s FormatDatas Error: [%v], proto=[%s]", desc, err, tableInfo.Name)
+		log.Errorf(ctx, ErrFormatData, "%s FormatDatas Error: [%v], proto=[%s]", desc, err, tableInfo.Name)
 		return
 	}
 

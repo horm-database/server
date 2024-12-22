@@ -297,8 +297,8 @@ func writeError(c gnet.Conn, fc *frameCodec, err error) gnet.Action {
 
 	respHeader := cp.ResponseHeader{
 		Err: &cp.Error{
-			Type: errs.ErrorTypeSystem,
-			Code: errs.RetServerReadFrameFail,
+			Type: int32(errs.ETypeSystem),
+			Code: errs.ErrServerReadFrame,
 			Msg:  err.Error(),
 		},
 	}

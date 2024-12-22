@@ -97,7 +97,7 @@ func mapReferHandle(node *obj.Tree, dbType int, data map[string]interface{}) (ma
 		if types.FirstWord(nk, 1) == "@" { //引用
 			referer, ok := v.(string)
 			if !ok {
-				return nil, false, errs.Newf(errs.RetRefererMustBeString, "referer %s must be string", nk)
+				return nil, false, errs.Newf(errs.ErrRefererMustBeString, "referer %s must be string", nk)
 			}
 			ret, isNil, err := findReferer(node, referer)
 			if err != nil || isNil {
@@ -259,7 +259,7 @@ func findReferer(node *obj.Tree, referer string) (ret interface{}, isNil bool, e
 		}
 
 		if node == nil {
-			return nil, false, errs.Newf(errs.RetNotFindReferer, "not find referer unit [%s]", referer)
+			return nil, false, errs.Newf(errs.ErrRefererNotFound, "not find referer unit [%s]", referer)
 		}
 
 		nodePath := node.GetReal().GetPath()
@@ -268,7 +268,7 @@ func findReferer(node *obj.Tree, referer string) (ret interface{}, isNil bool, e
 			var result interface{}
 
 			if node.Finished != cs.QueryFinishedYes {
-				return nil, false, errs.Newf(errs.RetRefererUnitNotExec, "referer unit is not execute [%s]", referer)
+				return nil, false, errs.Newf(errs.ErrRefererUnitNotExec, "referer unit is not execute [%s]", referer)
 			}
 
 			if cur != nil {
@@ -277,7 +277,7 @@ func findReferer(node *obj.Tree, referer string) (ret interface{}, isNil bool, e
 				}
 
 				if !node.IsSuccess() {
-					return nil, false, errs.Newf(errs.RetRefererUnitFailed, "referer unit [%s] failed", referer)
+					return nil, false, errs.Newf(errs.ErrRefererUnitFailed, "referer unit [%s] failed", referer)
 				}
 
 				result = cur.ParentRet
@@ -299,7 +299,7 @@ func findReferer(node *obj.Tree, referer string) (ret interface{}, isNil bool, e
 			return
 		} else if strings.Index(refererPath, nodePath) == 0 {
 			if len(node.SubQuery) == 0 {
-				return nil, false, errs.Newf(errs.RetNotFindReferer, "not find referer unit [%s]", referer)
+				return nil, false, errs.Newf(errs.ErrRefererNotFound, "not find referer unit [%s]", referer)
 			}
 
 			relativeRefererPath := strings.TrimPrefix(refererPath, nodePath)
@@ -317,7 +317,7 @@ func findReferer(node *obj.Tree, referer string) (ret interface{}, isNil bool, e
 			}
 
 			if !find {
-				return nil, false, errs.Newf(errs.RetNotFindReferer, "not find referer unit [%s]", referer)
+				return nil, false, errs.Newf(errs.ErrRefererNotFound, "not find referer unit [%s]", referer)
 			}
 
 			if e != nil {
@@ -340,7 +340,7 @@ func findRefererByPath(cur *obj.Tree, referer string,
 		if cur.GetReal().GetKey() == dir {
 			if len(refererPathArr) == 1 {
 				if cur.Finished != cs.QueryFinishedYes {
-					*e = errs.Newf(errs.RetRefererUnitNotExec, "referer unit is not execute [%s]", referer)
+					*e = errs.Newf(errs.ErrRefererUnitNotExec, "referer unit is not execute [%s]", referer)
 					return
 				}
 				*find = true
@@ -393,7 +393,7 @@ func getRefererResult(node *obj.Tree, referer string) (interface{}, bool, error)
 	}
 
 	if !node.IsSuccess() {
-		return nil, false, errs.Newf(errs.RetRefererUnitFailed, "referer unit [%s] failed", referer)
+		return nil, false, errs.Newf(errs.ErrRefererUnitFailed, "referer unit [%s] failed", referer)
 	}
 
 	if node.HasSub {
@@ -421,7 +421,7 @@ func getFieldValue(field string, refererResult interface{}) (interface{}, error)
 	case map[string]interface{}:
 		ret, ok := result[field]
 		if !ok {
-			return nil, errs.Newf(errs.RetRefererFieldNotExist, "referer result filed not exist")
+			return nil, errs.Newf(errs.ErrRefererFieldNotExist, "referer result filed not exist")
 		}
 		return ret, nil
 	case []interface{}:
@@ -430,7 +430,7 @@ func getFieldValue(field string, refererResult interface{}) (interface{}, error)
 			mv := v.(map[string]interface{})
 			tmp, ok := mv[field]
 			if !ok {
-				return nil, errs.Newf(errs.RetRefererFieldNotExist, "referer result filed not exist")
+				return nil, errs.Newf(errs.ErrRefererFieldNotExist, "referer result filed not exist")
 			}
 
 			ret = append(ret, tmp)
@@ -445,7 +445,7 @@ func getFieldValue(field string, refererResult interface{}) (interface{}, error)
 		for _, v := range result {
 			tmp, ok := v[field]
 			if !ok {
-				return nil, errs.Newf(errs.RetRefererFieldNotExist, "referer result filed not exist")
+				return nil, errs.Newf(errs.ErrRefererFieldNotExist, "referer result filed not exist")
 			}
 
 			ret = append(ret, tmp)
@@ -468,10 +468,10 @@ func getFieldValue(field string, refererResult interface{}) (interface{}, error)
 		case "reason":
 			return result.Reason, nil
 		default:
-			return nil, errs.Newf(errs.RetRefererFieldNotExist, "referer result filed not exist")
+			return nil, errs.Newf(errs.ErrRefererFieldNotExist, "referer result filed not exist")
 		}
 	default:
-		return nil, errs.Newf(errs.RetRefererResultType, "referer result type is invalid")
+		return nil, errs.Newf(errs.ErrRefererResultType, "referer result type is invalid")
 	}
 }
 

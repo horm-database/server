@@ -221,9 +221,9 @@ func writeError(c gnet.Conn, fc *frameCodec, err error) gnet.Action {
 	errMsg := types.QuickReplaceLFCR2Space(types.StringToBytes(errs.Msg(err)))
 
 	respBuilder.WriteString("\r\n" + proto.HeaderErrorType + ": ")
-	respBuilder.WriteString(strconv.Itoa(errs.ErrorTypeSystem))
+	respBuilder.WriteString(strconv.Itoa(int(errs.ETypeSystem)))
 	respBuilder.WriteString("\r\n" + proto.HeaderErrorCode + ": ")
-	respBuilder.WriteString(strconv.Itoa(errs.RetServerReadFrameFail))
+	respBuilder.WriteString(strconv.Itoa(errs.ErrServerReadFrame))
 	respBuilder.WriteString("\r\n" + proto.HeaderErrorMessage + ": ")
 	respBuilder.WriteString(errMsg)
 

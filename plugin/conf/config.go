@@ -25,7 +25,7 @@ func (f PluginConfig) GetString(key string) (ret string, exist bool) {
 func (f PluginConfig) GetInt(key string) (ret int64, exist bool, err error) {
 	ret, exist, err = types.GetInt64(f, key)
 	if err != nil {
-		err = errs.Newf(errs.RetPluginConfigInvalid, "get plugin int config error:", err)
+		err = errs.Newf(errs.ErrPluginConfig, "get plugin int config error:", err)
 	}
 	return
 }
@@ -34,7 +34,7 @@ func (f PluginConfig) GetInt(key string) (ret int64, exist bool, err error) {
 func (f PluginConfig) GetUint(key string) (ret uint64, exist bool, err error) {
 	ret, exist, err = types.GetUint64(f, key)
 	if err != nil {
-		err = errs.Newf(errs.RetPluginConfigInvalid, "get plugin uint config error:", err)
+		err = errs.Newf(errs.ErrPluginConfig, "get plugin uint config error:", err)
 	}
 	return
 }
@@ -43,7 +43,7 @@ func (f PluginConfig) GetUint(key string) (ret uint64, exist bool, err error) {
 func (f PluginConfig) GetFloat(key string) (ret float64, exist bool, err error) {
 	ret, exist, err = types.GetFloat64(f, key)
 	if err != nil {
-		err = errs.Newf(errs.RetPluginConfigInvalid, "get plugin float config error:", err)
+		err = errs.Newf(errs.ErrPluginConfig, "get plugin float config error:", err)
 	}
 	return
 }
@@ -97,7 +97,7 @@ func (f PluginConfig) GetTime(key string, loc ...*time.Location) (ret time.Time,
 
 		ret, err = time.ParseInLocation(layout, t, l)
 		if err != nil {
-			err = errs.Newf(errs.RetPluginConfigInvalid, "get plugin time config error:", err)
+			err = errs.Newf(errs.ErrPluginConfig, "get plugin time config error:", err)
 		}
 
 		return ret, true, err
@@ -128,7 +128,7 @@ func (f PluginConfig) GetTimeInterval(key string, loc ...*time.Location) (start,
 
 	t := strings.Split(str, "~")
 	if len(t) != 2 {
-		return time.Time{}, time.Time{}, true, errs.New(errs.RetPluginConfigInvalid,
+		return time.Time{}, time.Time{}, true, errs.New(errs.ErrPluginConfig,
 			"get date interval config error: config value should have start time and end time")
 	}
 
@@ -146,7 +146,7 @@ func (f PluginConfig) GetTimeInterval(key string, loc ...*time.Location) (start,
 
 	if err != nil {
 		return time.Time{}, time.Time{}, true,
-			errs.Newf(errs.RetPluginConfigInvalid, "get plugin time interval config start time error:", err)
+			errs.Newf(errs.ErrPluginConfig, "get plugin time interval config start time error:", err)
 	}
 
 	endStr := strings.TrimSpace(t[1])
@@ -158,7 +158,7 @@ func (f PluginConfig) GetTimeInterval(key string, loc ...*time.Location) (start,
 
 	if err != nil {
 		return time.Time{}, time.Time{}, true,
-			errs.Newf(errs.RetPluginConfigInvalid, "get plugin time interval config end time error:", err)
+			errs.Newf(errs.ErrPluginConfig, "get plugin time interval config end time error:", err)
 	}
 
 	return start, end, true, nil
@@ -168,7 +168,7 @@ func (f PluginConfig) GetTimeInterval(key string, loc ...*time.Location) (start,
 func (f PluginConfig) GetStringArray(key string) (ret []string, exist bool, err error) {
 	ret, exist, err = types.GetStringArray(f, key)
 	if err != nil {
-		err = errs.Newf(errs.RetPluginConfigInvalid, "get plugin string array config error:", err)
+		err = errs.Newf(errs.ErrPluginConfig, "get plugin string array config error:", err)
 	}
 	return
 }
@@ -177,7 +177,7 @@ func (f PluginConfig) GetStringArray(key string) (ret []string, exist bool, err 
 func (f PluginConfig) GetIntArray(key string) (ret []int64, exist bool, err error) {
 	ret, exist, err = types.GetInt64Array(f, key)
 	if err != nil {
-		err = errs.Newf(errs.RetPluginConfigInvalid, "get plugin int array config error:", err)
+		err = errs.Newf(errs.ErrPluginConfig, "get plugin int array config error:", err)
 	}
 	return
 }
@@ -186,7 +186,7 @@ func (f PluginConfig) GetIntArray(key string) (ret []int64, exist bool, err erro
 func (f PluginConfig) GetUintArray(key string) (ret []uint64, exist bool, err error) {
 	ret, exist, err = types.GetUint64Array(f, key)
 	if err != nil {
-		err = errs.Newf(errs.RetPluginConfigInvalid, "get plugin uint array config error:", err)
+		err = errs.Newf(errs.ErrPluginConfig, "get plugin uint array config error:", err)
 	}
 	return
 }
@@ -195,7 +195,7 @@ func (f PluginConfig) GetUintArray(key string) (ret []uint64, exist bool, err er
 func (f PluginConfig) GetFloatArray(key string) (ret []float64, exist bool, err error) {
 	ret, exist, err = types.GetFloat64Array(f, key)
 	if err != nil {
-		err = errs.Newf(errs.RetPluginConfigInvalid, "get plugin float array config error:", err)
+		err = errs.Newf(errs.ErrPluginConfig, "get plugin float array config error:", err)
 	}
 	return
 }
@@ -204,7 +204,7 @@ func (f PluginConfig) GetFloatArray(key string) (ret []float64, exist bool, err 
 func (f PluginConfig) GetMapConf(key string) (PluginConfig, bool, error) {
 	tmp, exist, err := types.GetMap(f, key)
 	if err != nil {
-		return nil, exist, errs.Newf(errs.RetPluginConfigInvalid, "get plugin map config error:", err)
+		return nil, exist, errs.Newf(errs.ErrPluginConfig, "get plugin map config error:", err)
 	}
 
 	return PluginConfig(tmp), exist, nil
@@ -229,7 +229,7 @@ func (f PluginConfig) GetMultiConf(key string) (ret []PluginConfig, exist bool, 
 		for k, arrItem := range arrVal {
 			im, e := types.InterfaceToMap(arrItem)
 			if e != nil {
-				return nil, true, errs.Newf(errs.RetPluginConfigInvalid, "get plugin multi-conf error:", e)
+				return nil, true, errs.Newf(errs.ErrPluginConfig, "get plugin multi-conf error:", e)
 			}
 			ret[k] = im
 		}
@@ -249,7 +249,7 @@ func (f PluginConfig) GetMultiConf(key string) (ret []PluginConfig, exist bool, 
 		}
 
 		if !types.IsArray(v) {
-			return nil, true, errs.Newf(errs.RetPluginConfigInvalid, "get plugin multi-conf error: value is not array")
+			return nil, true, errs.Newf(errs.ErrPluginConfig, "get plugin multi-conf error: value is not array")
 		}
 
 		l := v.Len()
@@ -258,7 +258,7 @@ func (f PluginConfig) GetMultiConf(key string) (ret []PluginConfig, exist bool, 
 		for i := 0; i < l; i++ {
 			im, e := types.InterfaceToMap(types.Interface(v.Index(i)))
 			if e != nil {
-				return nil, true, errs.Newf(errs.RetPluginConfigInvalid, "get plugin multi-conf error:", e)
+				return nil, true, errs.Newf(errs.ErrPluginConfig, "get plugin multi-conf error:", e)
 			}
 			ret[i] = im
 		}

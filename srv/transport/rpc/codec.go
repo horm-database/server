@@ -74,7 +74,7 @@ func (s *ServerCodec) Encode(msg *codec.Msg, respBody []byte) ([]byte, error) {
 
 	respHeaderBuf, err := proto.Marshal(respHeader)
 	if err != nil {
-		return nil, errs.Newf(errs.RetServerEncodeFail, "rpc proto marshal response header error: %v", err)
+		return nil, errs.Newf(errs.ErrServerEncode, "rpc proto marshal response header error: %v", err)
 	}
 
 	respBuf, err := frameHead.Construct(respHeaderBuf, respBody)
@@ -106,13 +106,13 @@ func (s *ServerCodec) getResponseHeader(msg *codec.Msg) *cp.ResponseHeader {
 	return respHeader
 }
 
-// handleEncodeErr handle encode err and return RetServerEncodeFail
+// handleEncodeErr handle encode err and return ErrServerEncode
 func (s *ServerCodec) handleEncodeErr(respHeader *cp.ResponseHeader,
 	frameHead *codec.FrameHead, respBody []byte, encodeErr error) ([]byte, error) {
 	// cover the original error.
 	respHeader.Err = &cp.Error{
-		Type: errs.ErrorTypeSystem,
-		Code: errs.RetServerEncodeFail,
+		Type: int32(errs.ETypeSystem),
+		Code: errs.ErrServerEncode,
 		Msg:  encodeErr.Error(),
 	}
 
