@@ -28,7 +28,6 @@ import (
 	"github.com/horm-database/orm/obj"
 	"github.com/horm-database/server/consts"
 	"github.com/horm-database/server/model/table"
-	"github.com/horm-database/server/util"
 )
 
 // Parse 请求解析
@@ -326,7 +325,12 @@ func parseParallelResult(node *obj.Tree) (interface{}, map[string]bool, map[stri
 	for {
 		key := node.GetReal().GetKey()
 		if !node.IsSuccess() {
-			rspErrs[key] = util.ErrorToRspError(node.Error)
+			rspErrs[key] = &proto.Error{
+				Type: int32(errs.Type(node.Error)),
+				Code: int32(errs.Code(node.Error)),
+				Msg:  errs.Msg(node.Error),
+				Sql:  errs.Sql(node.Error),
+			}
 		} else if node.IsNil {
 			rspNil[key] = true
 		} else {
@@ -365,7 +369,13 @@ func parseCompResult(node *obj.Tree) map[string]interface{} {
 		key := realNode.GetKey()
 
 		if !node.IsSuccess() {
-			result[key] = proto.CompResult{RetBase: proto.RetBase{Error: util.ErrorToRspError(node.Error)}}
+			result[key] = proto.CompResult{RetBase: proto.RetBase{
+				Error: &proto.Error{
+					Type: int32(errs.Type(node.Error)),
+					Code: int32(errs.Code(node.Error)),
+					Msg:  errs.Msg(node.Error),
+					Sql:  errs.Sql(node.Error),
+				}}}
 		} else if node.IsNil {
 			result[key] = proto.CompResult{RetBase: proto.RetBase{IsNil: true}}
 		} else {

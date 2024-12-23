@@ -34,8 +34,7 @@ import (
 	"github.com/horm-database/server/consts"
 	"github.com/horm-database/server/model/table"
 	"github.com/horm-database/server/plugin"
-	ut "github.com/horm-database/server/util"
-
+	
 	"github.com/barkimedes/go-deepcopy"
 )
 
@@ -44,7 +43,8 @@ func query(ctx context.Context, appid uint64,
 	node *obj.Tree) (result interface{}, detail *proto.Detail, isNil bool, err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			err = ut.LogErrorf(ctx, errs.ErrPanic, "query panic: %v", e)
+			err = errs.Newf(errs.ErrPanic, "query panic: %v", e)
+			log.Error(ctx, errs.ErrPanic, err.Error())
 			return
 		}
 	}()
@@ -184,7 +184,7 @@ func pluginsHandle(ctx context.Context, req *pf.Request, resp *pf.Response, appi
 		tblPlugin := table.GetPlugin(tablePlugin.PluginID)
 
 		if tblPlugin == nil {
-			e := errs.Newf(errs.ErrPluginNotFound, "not find plugin : %d", tablePlugin.PluginID)
+			e := errs.NewPluginErrorf(errs.ErrPluginNotFound, "not find plugin : %d", tablePlugin.PluginID)
 			if tablePlugin.ScheduleConf.SkipError {
 				log.Error(ctx, errs.ErrPluginNotFound, e.Error())
 				continue
@@ -197,7 +197,7 @@ func pluginsHandle(ctx context.Context, req *pf.Request, resp *pf.Response, appi
 		f := plugin.Func[funcName]
 
 		if f == nil {
-			e := errs.Newf(errs.ErrPluginFuncNotRegister, "plugin %s`s function %s "+
+			e := errs.NewPluginErrorf(errs.ErrPluginFuncNotRegister, "plugin %s`s function %s "+
 				"version %d not register", tblPlugin.Name, tblPlugin.Func, tablePlugin.PluginVersion)
 
 			if tablePlugin.ScheduleConf.SkipError {
@@ -310,11 +310,13 @@ func pluginHandle(ctx context.Context, req *pf.Request, resp *pf.Response,
 	extend types.Map, tablePlugin *table.TblTablePlugin, f plugin.Plugin) (response bool, err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			err = ut.LogErrorf(ctx, errs.ErrPanic,
+			err = errs.NewPluginErrorf(errs.ErrPanic,
 				"plugin handle panic: [%v], req=%s, resp=%s, extend=%s ",
 				e, json.MarshalToString(req),
 				json.MarshalToString(resp),
 				json.MarshalToString(extend))
+
+			log.Error(ctx, errs.ErrPanic, err.Error())
 		}
 	}()
 
@@ -326,15 +328,15 @@ func getPluginError(err error) error {
 		return nil
 	}
 
-	e := errs.Error{
-		Type: errs.ETypePlugin,
-		Code: errs.Code(err),
-		Msg:  errs.Msg(err),
+	if errs.Type(err) == errs.ETypePlugin {
+		return err
 	}
 
-	if e.Code == errs.ErrUnknown {
-		e.Code = errs.ErrPluginExec
+	e := errs.NewPluginErrorf(errs.Code(err), errs.Msg(err))
+
+	if errs.Code(e) == errs.ErrUnknown {
+		e = errs.SetErrorCode(e, errs.ErrPluginExec)
 	}
 
-	return &e
+	return e
 }
