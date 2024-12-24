@@ -184,7 +184,7 @@ func pluginsHandle(ctx context.Context, req *pf.Request, resp *pf.Response, appi
 		tblPlugin := table.GetPlugin(tablePlugin.PluginID)
 
 		if tblPlugin == nil {
-			e := errs.NewPluginErrorf(errs.ErrPluginNotFound, "not find plugin : %d", tablePlugin.PluginID)
+			e := errs.NewPluginf(errs.ErrPluginNotFound, "not find plugin : %d", tablePlugin.PluginID)
 			if tablePlugin.ScheduleConf.SkipError {
 				log.Error(ctx, errs.ErrPluginNotFound, e.Error())
 				continue
@@ -197,7 +197,7 @@ func pluginsHandle(ctx context.Context, req *pf.Request, resp *pf.Response, appi
 		f := plugin.Func[funcName]
 
 		if f == nil {
-			e := errs.NewPluginErrorf(errs.ErrPluginFuncNotRegister, "plugin %s`s function %s "+
+			e := errs.NewPluginf(errs.ErrPluginFuncNotRegister, "plugin %s`s function %s "+
 				"version %d not register", tblPlugin.Name, tblPlugin.Func, tablePlugin.PluginVersion)
 
 			if tablePlugin.ScheduleConf.SkipError {
@@ -310,7 +310,7 @@ func pluginHandle(ctx context.Context, req *pf.Request, resp *pf.Response,
 	extend types.Map, tablePlugin *table.TblTablePlugin, f plugin.Plugin) (response bool, err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			err = errs.NewPluginErrorf(errs.ErrPanic,
+			err = errs.NewPluginf(errs.ErrPanic,
 				"plugin handle panic: [%v], req=%s, resp=%s, extend=%s ",
 				e, json.MarshalToString(req),
 				json.MarshalToString(resp),
@@ -332,7 +332,7 @@ func getPluginError(err error) error {
 		return err
 	}
 
-	e := errs.NewPluginErrorf(errs.Code(err), errs.Msg(err))
+	e := errs.NewPluginf(errs.Code(err), errs.Msg(err))
 
 	if errs.Code(e) == errs.ErrUnknown {
 		e = errs.SetErrorCode(e, errs.ErrPluginExec)
