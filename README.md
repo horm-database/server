@@ -51,6 +51,7 @@ CREATE TABLE `score_rank_reward` (
 ```
 
 # 查询单元（执行单元）
+## 数据名称
 协议由一组查询单元（执行单元）组成，每个执行单元都是对一张表或者一个es 索引的一个操作，包含增删改查等操作，查询单元（执行单元）
 在 数据统一接入服务通过 `name(数据名称)` 找到对应的mysql表/es索引/redis配置信息、及其数据库信息，然后根据协议将执行单元转化
 为对应数据库 sql语句、 elastic 请求或 redis 请求，并将执行结果返回到客户端。
@@ -59,6 +60,17 @@ CREATE TABLE `score_rank_reward` (
 ```json
 {
   "name": "student",
+  "op": "find",
+  "where": {
+    "name": "caohao"
+  }
+}
+```
+如果存在相同的数据名称的时候，我们可以通过增加库名来区分如下，否则会报错，不允许存在相同的库名+数据名。
+请求：
+```json
+{
+  "name": "test::student",
   "op": "find",
   "where": {
     "name": "caohao"
