@@ -103,7 +103,7 @@ CREATE TABLE `score_rank_reward` (
 package proto
 
 import (
-	"github.com/horm-database/common/consts"
+	"github.com/horm-database/common/structs"
 )
 
 // Unit 查询单元（执行单元）
@@ -124,7 +124,7 @@ type Unit struct {
 	// 数据更新
 	Data     map[string]interface{}     `json:"data,omitempty"`      // add/update one data
 	Datas    []map[string]interface{}   `json:"datas,omitempty"`     // batch add/update data
-	DataType map[string]consts.DataType `json:"data_type,omitempty"` // 数据类型（主要用于 clickhouse，对于数据类型有强依赖），请求 json 不区分 int8、int16、int32、int64 等，只有 Number 类型，bytes 也会被当成 string 处理。
+	DataType map[string]structs.Type `json:"data_type,omitempty"` // 数据类型（主要用于 clickhouse，对于数据类型有强依赖），请求 json 不区分 int8、int16、int32、int64 等，只有 Number 类型，bytes 也会被当成 string 处理。
 
 	// group by
 	Group  []string               `json:"group,omitempty"`  // group by
@@ -169,6 +169,146 @@ type Join struct {
 	Table string            `json:"table,omitempty"`
 	Using []string          `json:"using,omitempty"`
 	On    map[string]string `json:"on,omitempty"`
+}
+```
+
+## 数据类型
+执行单元中的 data、datas、args 等数据参数，包含的数据类型如下：
+```go
+//github.com/horm-database/common/structs/type.go
+package structs
+
+type Type int8
+
+const (
+	TypeTime   Type = 1 // 类型是 time.Time
+	TypeBytes  Type = 2 // 类型是 []byte
+	TypeInt    Type = 3
+	TypeInt8   Type = 4
+	TypeInt16  Type = 5
+	TypeInt32  Type = 6
+	TypeInt64  Type = 7
+	TypeUint   Type = 8
+	TypeUint8  Type = 9
+	TypeUint16 Type = 10
+	TypeUint32 Type = 11
+	TypeUint64 Type = 12
+	TypeFloat  Type = 13
+	TypeDouble Type = 14
+	TypeString Type = 15
+	TypeBool   Type = 16
+	TypeJSON   Type = 17
+)
+
+var TypeDesc = map[string]Type{
+	"time":   TypeTime,
+	"bytes":  TypeBytes,
+	"int":    TypeInt,
+	"int8":   TypeInt8,
+	"int16":  TypeInt16,
+	"int32":  TypeInt32,
+	"int64":  TypeInt64,
+	"uint":   TypeUint,
+	"uint8":  TypeUint8,
+	"uint16": TypeUint16,
+	"uint32": TypeUint32,
+	"uint64": TypeUint64,
+	"float":  TypeFloat,
+	"double": TypeDouble,
+	"string": TypeString,
+	"bool":   TypeBool,
+	"json":   TypeJSON,
+}
+```
+
+我们发送请求到数据统一调度服务的时候，默认情况下可以不指定数据类型，但是在某些情况下，比如 clickhouse 对类型有强限制，需要指定具体的类型，又或者
+一个超大的 uint64 整数，json.Marshal 编码之后请求服务端，由于 json 的基础类型只包含 string、number(当成float64)、bool 在服务端会被转化
+为 float64，存在精度丢失问题， 所以当类型为 time、[]byte、int、int8~int64、uint、uint8~uint64 时，需要在执行单元 data_type 字段里将
+数据类型带上，当然这不是必须的，只有当需要上传一个足够大的uint64字段，或者你所操作的数据库对类型有强要求时，才会用到， 比如下面对clickhouse的插入：
+
+```json
+{
+  "name": "student",
+  "op": "insert",
+  "data": {
+    "article": "Artificial Intelligence",
+    "exam_time": "15:30:00",
+    "created_at": "2024-12-28T12:51:52.846304+08:00",
+    "name": "kitty",
+    "image": "SU1BR0UuUENH",
+    "identify": 2024080313,
+    "gender": 2,
+    "score": 91.5,
+    "birthday": "1987-08-27",
+    "age": 23,
+    "updated_at": "2024-12-28T12:51:52.846305+08:00",
+    "id": 231035320542441473
+  },
+  "data_type": {
+    "identify": 7,
+    "gender": 4,
+    "created_at": 1,
+    "updated_at": 1,
+    "id": 12,
+    "age": 8,
+    "image": 2
+  }
+}
+```
+
+horm 基础类型，会在数据统一接入服务根据指定的数据源引擎映射、解析成对应的类型在 mysql 和 clickhouse 类型映射为：
+```go
+//github.com/orm/database/sql/type.go
+
+var MySQLTypeMap = map[string]structs.Type{
+  "INT":                structs.TypeInt,
+  "TINYINT":            structs.TypeInt8,
+  "SMALLINT":           structs.TypeInt16,
+  "MEDIUMINT":          structs.TypeInt32,
+  "BIGINT":             structs.TypeInt64,
+  "UNSIGNED INT":       structs.TypeUint,
+  "UNSIGNED TINYINT":   structs.TypeUint8,
+  "UNSIGNED SMALLINT":  structs.TypeUint16,
+  "UNSIGNED MEDIUMINT": structs.TypeUint32,
+  "UNSIGNED BIGINT":    structs.TypeUint64,
+  "BIT":                structs.TypeBytes,
+  "FLOAT":              structs.TypeFloat,
+  "DOUBLE":             structs.TypeDouble,
+  "DECIMAL":            structs.TypeDouble,
+  "VARCHAR":            structs.TypeString,
+  "CHAR":               structs.TypeString,
+  "TEXT":               structs.TypeString,
+  "BLOB":               structs.TypeBytes,
+  "BINARY":             structs.TypeBytes,
+  "VARBINARY":          structs.TypeBytes,
+  "TIME":               structs.TypeString,
+  "DATE":               structs.TypeTime,
+  "DATETIME":           structs.TypeTime,
+  "TIMESTAMP":          structs.TypeTime,
+  "JSON":               structs.TypeJSON,
+}
+
+var ClickHouseTypeMap = map[string]structs.Type{
+  "Int":         structs.TypeInt,
+  "Int8":        structs.TypeInt8,
+  "Int16":       structs.TypeInt16,
+  "Int32":       structs.TypeInt32,
+  "Int64":       structs.TypeInt64,
+  "UInt":        structs.TypeUint,
+  "UInt8":       structs.TypeUint8,
+  "UInt16":      structs.TypeUint16,
+  "UInt32":      structs.TypeUint32,
+  "UInt64":      structs.TypeUint64,
+  "Float":       structs.TypeFloat,
+  "Float32":     structs.TypeFloat,
+  "Float64":     structs.TypeDouble,
+  "Decimal":     structs.TypeDouble,
+  "String":      structs.TypeString,
+  "FixedString": structs.TypeString,
+  "UUID":        structs.TypeString,
+  "DateTime":    structs.TypeTime,
+  "DateTime64":  structs.TypeTime,
+  "Date":        structs.TypeTime,
 }
 ```
 

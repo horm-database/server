@@ -21,9 +21,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/horm-database/common/consts"
 	"github.com/horm-database/common/errs"
 	"github.com/horm-database/common/proto"
+	"github.com/horm-database/common/structs"
 	"github.com/horm-database/common/types"
 	"github.com/horm-database/common/util"
 	"github.com/horm-database/orm/obj"
@@ -182,7 +182,7 @@ func keyReferHandle(node *obj.Tree, key string) (string, bool, error) {
 
 // args 引用处理
 func argsReferHandle(node *obj.Tree, args []interface{},
-	typeMap map[string]consts.DataType) (ret []interface{}, isNil bool, err error) {
+	typeMap map[string]structs.Type) (ret []interface{}, isNil bool, err error) {
 	for k, arg := range args {
 		str, ok := arg.(string)
 		if ok && argHasReferer(str) {
