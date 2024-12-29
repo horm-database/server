@@ -172,7 +172,7 @@ type Join struct {
 }
 ```
 
-## 数据类型
+## 基础数据类型
 执行单元中的 data、datas、args 等数据参数，可以包含如下一些基础数据类型下，在一般情况下，我们是不需要指定数据的类型的：
 ```go
 package structs
@@ -257,7 +257,7 @@ uint8~uint64 时，需要在执行单元 data_type 字段里将数据类型带�
   }
 ]
 ```
-horm 基础类型，会在数据统一接入服务根据指定的数据源引擎映射、解析成对应的类型，在 mysql 和 clickhouse 类型映射为：
+horm 基础类型，会在数据统一接入服务根据指定的数据源引擎映射、解析成对应的类型，例如在 mysql 和 clickhouse 类型映射为：
 ```go
 //github.com/orm/database/sql/type.go
 
@@ -644,7 +644,7 @@ type Detail struct {
 ]
 ```
 
-### 引用（同层级）
+### 引用
 引用是指的一个查询单元的请求参数来自另外一个查询的返回结果，当出现引用的时候，并行执行会退化为串行执行。引用有多种方式，
 如下 {"@identify": "student.identify"} 中 map 的 key 以`@`开头的时候，表示 identify 的值引用自 student 执行单元
 的返回结果的 identify 字段。`.` 之前表示引用路径，之后表示引用的 field， 被引用的执行单元必须在引用的执行单元之前被执行，否则就会报错。
@@ -1007,21 +1007,6 @@ type RetBase struct {
 
 
 # 测试
-#### 1.2.1.1 分片、分库、分表
-如果有分库、分表、分片等需求，客户端可以通过 shard 字段，告诉服务端我的分片参数，然后在服务端配置分片函数 ShardFunc 来实现复杂的分库、分表、分片逻辑。
-
-```json
-[
-    {
-        "name":"student",
-        "op":"find",
-        "shard":"student_72",
-        "where":{
-            "userid":32881772
-        }
-    }
-]
-```
 
 ### 1.2.2 数据查询
 #### 1.2.2.1多表 join（MySQL 特有）

@@ -151,25 +151,13 @@ func (f PluginConfig) GetTimeInterval(key string, loc ...*time.Location) (start,
 		l = loc[0]
 	}
 
-	startStr := strings.TrimSpace(t[0])
-	if len(startStr) == 10 {
-		start, err = types.InterfaceToTime(startStr, "2006-01-02", l)
-	} else {
-		start, err = types.InterfaceToTime(startStr, "2006-01-02 15:04:05", l)
-	}
-
+	start, err = types.InterfaceToTime(strings.TrimSpace(t[0]), "", l)
 	if err != nil {
 		return time.Time{}, time.Time{}, true,
 			errs.Newf(errs.ErrPluginConfig, "get plugin time interval config start time error:", err)
 	}
 
-	endStr := strings.TrimSpace(t[1])
-	if len(endStr) == 10 {
-		end, err = types.InterfaceToTime(endStr, "2006-01-02", l)
-	} else {
-		end, err = types.InterfaceToTime(endStr, "2006-01-02 15:04:05", l)
-	}
-
+	end, err = types.InterfaceToTime(strings.TrimSpace(t[1]), "", l)
 	if err != nil {
 		return time.Time{}, time.Time{}, true,
 			errs.Newf(errs.ErrPluginConfig, "get plugin time interval config end time error:", err)
