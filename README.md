@@ -1005,9 +1005,312 @@ type RetBase struct {
 会变成 `/student/student_course/course_info.teacher`如果以 `../` 开头的相对路径，则会把`../` 转化为父查询的绝对路径，
 例如上面案例的 `../.course`，会变成 `/student/student_course.course`，在相对路径转化为绝对路径之后，再根据规则获取指定路径的引用结果。
 
+## 返回结果
+### 空返回 和 error
+当数据源为 mysql、clickhouse、es 等数据库时，如果 find 或者 find_all 查询的数据为空时，返回参数 isNil=true，否则，返回参数为 false，
+而当数据源为 redis 时，只有 redis 返回 redigo: nil returned 错误时，才会使得 isNil = true，其他时候都是 isNil = false，
+即便如下 ZRangeByScore 去查询一个不存在的有序集时，isNil 也是 false。
+```json
+[
+    {
+        "name": "student",
+        "op": "find",
+        "where": {
+            "name": "noexist"
+        }
+    }
+]
+```
+```go
+// is_nil = true
+```
+```json
+[
+    {
+        "name": "student",
+        "op": "find_all",
+        "where": {
+            "name": "noexists"
+        }
+    }
+]
+```
+```go
+// is_nil = true
+```
+```json
+[
+    {
+        "name": "redis_student",
+        "op": "get",
+        "key": "noexists"
+    }
+]
+```
+```go
+// is_nil = true
+```
+```json
+[
+    {
+        "name": "redis_student",
+        "op": "zrangebyscore",
+        "data_type": {
+            "0": 5,
+            "1": 5
+        },
+        "key": "noexists",
+        "args": [
+            70,
+            100
+        ],
+        "params": {
+            "with_scores": true
+        }
+    }
+]
+```
+```go
+// is_nil = false
+```
 
-# 测试
 
+上面展示的是单执行单元的返回结果，在单执行单元中，is_nil、error 参数在 ResponseHeader 中返回客户端：
+```protobuf
+/* ResponseHeader 响应头 */
+message ResponseHeader {
+  ...
+  Error err = 5;                     // 返回错误
+  bool is_nil = 6;                   // 返回是否为空（针对单执行单元）
+}
+```
+
+在并行查询中，一般系统返回，例如请求参数错误、解析失败、网络错误、权限错误等都会在 ResponseHeader 的 err 返回。
+每个并行查询单元的 is_nil、error 结果则会在 ResponseHeader 中的 rsp_nils、rsp_errs 中返回给客户端，
+这是一个 map，key是请求名(别名)。
+```protobuf
+/* ResponseHeader 响应头 */
+message ResponseHeader {
+  ...
+  Error err = 5;                     // 返回错误
+  map<string, Error> rsp_errs = 7;   // 错误返回（针对多执行单元并发）
+  map<string, bool> rsp_nils = 8;    // 是否为空返回（针对多执行单元并发）
+}
+```
+示例：
+```json
+[
+    {
+        "name": "student(add)",
+        "op": "insert",
+        "data": {
+            "no_field": null
+        }
+    },
+    {
+        "name": "student(find)",
+        "op": "find",
+        "where": {
+            "no_field": "caohao"
+        }
+    }
+]
+```
+
+在复合查询中，请求参数错误、解析失败、网络错误、权限错误等依然在 ResponseHeader 的 err 中返回，
+每个查询单元的 is_nil、error 则包含在结果里面。
+```go
+package proto // "github.com/horm-database/common/proto"
+
+// CompResult 混合查询返回结果
+type CompResult struct {
+	RetBase             // 返回基础信息
+	Data    interface{} `json:"data"` // 返回数据
+}
+
+// RetBase 混合查询返回结果基础信息
+type RetBase struct {
+	Error  *Error  `json:"error,omitempty"`  // 错误返回
+	IsNil  bool    `json:"is_nil,omitempty"` // 是否为空
+	Detail *Detail `json:"detail,omitempty"` // 查询细节信息
+}
+```
+
+数据统一接入服务的错误结构如下，错误包含：错误类型，错误码，错误信息，异常查询语句组成（sql不仅指代sql语句，elastic语句、redis 命令也包含在内）
+```protobuf
+message Error {
+  int32  type = 1; //错误类型
+  int32  code = 2; //错误码
+  string msg = 3;  //错误信息
+  string sql = 4;  //异常sql语句
+}
+```
+
+错误类型包含3大类，比如请求参数错误、解析失败、网络错误、权限错误等都属于系统错误，找不到插件、插件未注册、插件执行错误等都属于插件错误。
+数据库执行报错都属于数据库错误。
+```go
+// EType 错误类型
+type EType int8
+
+const (
+	ETypeSystem   EType = 0 //系统错误
+	ETypePlugin   EType = 1 //插件错误
+	ETypeDatabase EType = 2 //数据库错误
+)
+```
+
+### 全部成功
+当 Elastic 批量插入新数据时，返回 `[]*proto.ModRet`，我们可以遍历返回结果，`status` 为错误码，当 `status!=0` 则该条记录
+插入失败，`reason`为失败原因，这样，我们可以针对失败的记录做特殊处理，比如重试。
+```json
+{
+  "name": "es_student",
+  "op": "insert",
+  "datas": [
+    {
+      "exam_time": "15:30:00",
+      "birthday": "1987-08-27",
+      "identify": 2024061211,
+      "age": 19,
+      "score": 89.7,
+      "id": 1,
+      "article": "Compilation theory, architecture of large systems, and development of Reduced Instruction Set (RISC) computers",
+      "name": "caohao",
+      "created_at": "2025-01-03T21:20:18.33406+08:00",
+      "updated_at": "2025-01-03T21:20:18.334061+08:00",
+      "gender": 1,
+      "image": "SU1BR0UuUENH"
+    },
+    {
+      "gender": 1,
+      "exam_time": "15:30:00",
+      "age": 17,
+      "birthday": "1987-08-27",
+      "updated_at": "2025-01-03T21:20:18.334081+08:00",
+      "id": 2,
+      "image": "SU1BR0UuUENH",
+      "article": "Design and analysis of algorithms and data structures",
+      "identify": 2024070733,
+      "name": "jerry",
+      "score": 92.3,
+      "created_at": "2025-01-03T21:20:18.33408+08:00"
+    }
+  ],
+  "data_type": {
+    "updated_at": 1,
+    "gender": 7,
+    "image": 2,
+    "identify": 10,
+    "age": 6,
+    "id": 14,
+    "created_at": 1
+  }
+}
+```
+
+返回结果：
+```json
+[
+  {
+    "id": "Ay7DApQBdHFFOkFBRxKQ",
+    "rows_affected": 1,
+    "version": 1,
+    "status": 0
+  },
+  {
+    "id": "BC7DApQBdHFFOkFBRxKQ",
+    "rows_affected": 1,
+    "version": 1,
+    "status": 0
+  }
+]
+```
+
+ModRet 的结构体如下：
+```go
+// ModRet 新增/更新返回信息
+type ModRet struct {
+	ID          ID                     `orm:"id,omitempty" json:"id,omitempty"`                       // id 主键，可能是 mysql 的最后自增id，last_insert_id 或 elastic 的 _id 等，类型可能是 int64、string
+	RowAffected int64                  `orm:"rows_affected,omitempty" json:"rows_affected,omitempty"` // 影响行数
+	Version     int64                  `orm:"version,omitempty" json:"version,omitempty"`             // 数据版本
+	Status      int                    `orm:"status,omitempty" json:"status,omitempty"`               // 返回状态码
+	Reason      string                 `orm:"reason,omitempty" json:"reason,omitempty"`               // mod 失败原因
+	Extras      map[string]interface{} `orm:"extras,omitempty" json:"extras,omitempty"`               // 更多详细信息
+}
+```
+
+上面语句在 es 插入了两条数据：
+```json
+GET /es_student/_search
+{
+  "query": {
+    "match_all": {}
+  }
+}
+---------
+{
+  "took" : 2,
+  "timed_out" : false,
+  "_shards" : {
+    "total" : 1,
+    "successful" : 1,
+    "skipped" : 0,
+    "failed" : 0
+  },
+  "hits" : {
+    "total" : {
+      "value" : 2,
+      "relation" : "eq"
+    },
+    "max_score" : 1.0,
+    "hits" : [
+      {
+        "_index" : "es_student",
+        "_type" : "_doc",
+        "_id" : "Ay7DApQBdHFFOkFBRxKQ",
+        "_score" : 1.0,
+        "_source" : {
+          "age" : 19,
+          "article" : "Compilation theory, architecture of large systems, and development of Reduced Instruction Set (RISC) computers",
+          "birthday" : "1987-08-27",
+          "created_at" : "2024-12-26T19:38:59.750313+08:00",
+          "exam_time" : "15:30:00",
+          "gender" : 1,
+          "id" : 1,
+          "identify" : 2024061211,
+          "image" : "SU1BR0UuUENH",
+          "name" : "caohao",
+          "score" : 89.7,
+          "updated_at" : "2024-12-26T19:38:59.750316+08:00"
+        }
+      },
+      {
+        "_index" : "es_student",
+        "_type" : "_doc",
+        "_id" : "BC7DApQBdHFFOkFBRxKQ",
+        "_score" : 1.0,
+        "_source" : {
+          "age" : 17,
+          "article" : "Design and analysis of algorithms and data structures",
+          "birthday" : "1987-08-27",
+          "created_at" : "2024-12-26T19:38:59.750328+08:00",
+          "exam_time" : "15:30:00",
+          "gender" : 1,
+          "id" : 2,
+          "identify" : 2024070733,
+          "image" : "SU1BR0UuUENH",
+          "name" : "jerry",
+          "score" : 92.3,
+          "updated_at" : "2024-12-26T19:38:59.750331+08:00"
+        }
+      }
+    ]
+  }
+}
+
+```
+
+# 查询
 ### 1.2.2 数据查询
 #### 1.2.2.1多表 join（MySQL 特有）
 注意，join 和 嵌套查询的区别，join返回结果在同一行，嵌套查询，其他表是在被嵌套的一个字段存在。

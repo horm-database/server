@@ -182,7 +182,7 @@ func keyReferHandle(node *obj.Tree, key string) (string, bool, error) {
 
 // args 引用处理
 func argsReferHandle(node *obj.Tree, args []interface{},
-	typeMap map[string]structs.Type) (ret []interface{}, isNil bool, err error) {
+	types map[string]structs.Type) (ret []interface{}, isNil bool, err error) {
 	for k, arg := range args {
 		str, ok := arg.(string)
 		if ok && argHasReferer(str) {
@@ -190,8 +190,8 @@ func argsReferHandle(node *obj.Tree, args []interface{},
 			if err != nil || isNil {
 				return nil, isNil, err
 			}
-		} else if len(typeMap) > 0 {
-			args[k], err = util.GetDataByType(strconv.Itoa(k), arg, typeMap)
+		} else if len(types) > 0 {
+			args[k], err = util.GetDataByType(strconv.Itoa(k), arg, types)
 			if err != nil {
 				return nil, false, err
 			}
