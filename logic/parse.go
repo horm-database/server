@@ -308,7 +308,7 @@ func parseResult(node *obj.Tree) (bool, interface{}, error) {
 		if node.Result == nil {
 			result.Data = []interface{}{}
 		} else {
-			result.Data, _ = types.InterfaceToArray(node.Result)
+			result.Data, _ = types.ToArray(node.Result)
 		}
 		return node.IsNil, result, nil
 	}
@@ -339,7 +339,7 @@ func parseParallelResult(node *obj.Tree) (interface{}, map[string]bool, map[stri
 				if node.Result == nil {
 					pageRet.Data = []interface{}{}
 				} else {
-					pageRet.Data, _ = types.InterfaceToArray(node.Result)
+					pageRet.Data, _ = types.ToArray(node.Result)
 				}
 				result[key] = pageRet
 			} else {
@@ -361,7 +361,7 @@ func parseParallelResult(node *obj.Tree) (interface{}, map[string]bool, map[stri
 func parseCompResult(node *obj.Tree) map[string]interface{} {
 	result := map[string]interface{}{}
 	if node.IsSub {
-		result, _ = types.InterfaceToMap(node.ParentRet)
+		result, _ = types.ToMap(node.ParentRet)
 	}
 
 	for {

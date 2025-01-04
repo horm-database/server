@@ -1240,14 +1240,16 @@ type ModRet struct {
 ```
 
 上面语句在 es 插入了两条数据：
-```json
+```eslint
 GET /es_student/_search
 {
   "query": {
     "match_all": {}
   }
 }
----------
+```
+
+```json
 {
   "took" : 2,
   "timed_out" : false,

@@ -97,7 +97,7 @@ func (f PluginConfig) GetTime(key string, loc ...*time.Location) (ret time.Time,
 			return *val, true, nil
 		}
 	default:
-		t := strings.TrimSpace(types.InterfaceToString(value))
+		t := strings.TrimSpace(types.ToString(value))
 
 		l := time.Local
 		if len(loc) > 0 {
@@ -138,7 +138,7 @@ func (f PluginConfig) GetTimeInterval(key string, loc ...*time.Location) (start,
 		return times[0], times[1], true, nil
 	}
 
-	str := types.InterfaceToString(value)
+	str := types.ToString(value)
 
 	t := strings.Split(str, "~")
 	if len(t) != 2 {
@@ -151,13 +151,13 @@ func (f PluginConfig) GetTimeInterval(key string, loc ...*time.Location) (start,
 		l = loc[0]
 	}
 
-	start, err = types.InterfaceToTime(strings.TrimSpace(t[0]), "", l)
+	start, err = types.ToTime(strings.TrimSpace(t[0]), l)
 	if err != nil {
 		return time.Time{}, time.Time{}, true,
 			errs.Newf(errs.ErrPluginConfig, "get plugin time interval config start time error:", err)
 	}
 
-	end, err = types.InterfaceToTime(strings.TrimSpace(t[1]), "", l)
+	end, err = types.ToTime(strings.TrimSpace(t[1]), l)
 	if err != nil {
 		return time.Time{}, time.Time{}, true,
 			errs.Newf(errs.ErrPluginConfig, "get plugin time interval config end time error:", err)
@@ -229,7 +229,7 @@ func (f PluginConfig) GetMultiConf(key string) (ret []PluginConfig, exist bool, 
 	case []interface{}:
 		ret = make([]PluginConfig, len(arrVal))
 		for k, arrItem := range arrVal {
-			im, e := types.InterfaceToMap(arrItem)
+			im, e := types.ToMap(arrItem)
 			if e != nil {
 				return nil, true, errs.Newf(errs.ErrPluginConfig, "get plugin multi-conf error:", e)
 			}
@@ -258,7 +258,7 @@ func (f PluginConfig) GetMultiConf(key string) (ret []PluginConfig, exist bool, 
 		ret = make([]PluginConfig, l)
 
 		for i := 0; i < l; i++ {
-			im, e := types.InterfaceToMap(types.Interface(v.Index(i)))
+			im, e := types.ToMap(types.Interface(v.Index(i)))
 			if e != nil {
 				return nil, true, errs.Newf(errs.ErrPluginConfig, "get plugin multi-conf error:", e)
 			}

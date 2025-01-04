@@ -131,7 +131,7 @@ func mapReferHandle(node *obj.Tree, dbType int, data map[string]interface{}) (ma
 						if types.IsNil(arrVal) {
 							subMaps[index] = nil
 						} else {
-							mapV, err := types.InterfaceToMap(arrVal.Interface())
+							mapV, err := types.ToMap(arrVal.Interface())
 							if err != nil {
 								return nil, false, err
 							}
@@ -145,7 +145,7 @@ func mapReferHandle(node *obj.Tree, dbType int, data map[string]interface{}) (ma
 					}
 					result[k] = subMaps
 				} else {
-					mapV, err := types.InterfaceToMap(v)
+					mapV, err := types.ToMap(v)
 					if err != nil {
 						return nil, false, err
 					}
