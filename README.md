@@ -19,8 +19,9 @@ CREATE TABLE `student` (
     `birthday` date DEFAULT NULL COMMENT '出生日期',
     `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
-    PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='学生表';
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `identity` (`identify`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='学生表'
 
 CREATE TABLE `student_course` (
     `id` int NOT NULL AUTO_INCREMENT,
@@ -82,16 +83,16 @@ CREATE TABLE `score_rank_reward` (
 ```json
 {
   "created_at": "2024-11-30T20:53:57+08:00",
-  "id": 1,
-  "identify": 2024061211,
-  "age": 19,
-  "score": 89.7,
+  "id": 234047220842770433,
+  "identify": 2024080313,
+  "age": 23,
+  "score": 91.5,
   "image": "SU1BR0UuUENH",
   "exam_time": "15:30:00",
-  "birthday": "1995-03-23T00:00:00+08:00",
+  "birthday": "1987-08-27T00:00:00+08:00",
   "gender": 1,
   "name": "caohao",
-  "article": "Compilation theory, architecture of large systems, and development of Reduced Instruction Set (RISC) computers",
+  "article": "groundbreaking work in cryptography and complexity theory",
   "updated_at": "2024-12-12T19:30:37+08:00"
 }
 ```
@@ -227,35 +228,33 @@ number(当成float64)、bool，数字在服务端会被解析为 float64，存�
 uint8~uint64 时，需要在执行单元 data_type 字段里将数据类型带上，比如下面对clickhouse的插入：
 
 ```json
-[
-  {
-    "name": "student(add)",
-    "op": "insert",
-    "data": {
-      "created_at": "2024-12-28T19:47:05.056251+08:00",
-      "updated_at": "2024-12-28T19:47:05.056229+08:00",
-      "name": "caohao",
-      "score": 91.5,
-      "image": "SU1BR0UuUENH",
-      "exam_time": "15:30:00",
-      "gender": 2,
-      "id": 231139809924493313,
-      "birthday": "1987-08-27",
-      "identify": 2024080313,
-      "age": 23,
-      "article": "groundbreaking work in cryptography and complexity theory"
-    },
-    "data_type": {
-      "identify": 10,
-      "age": 6,
-      "id": 14,
-      "image": 2,
-      "gender": 7,
-      "created_at": 1,
-      "updated_at": 1
-    }
+{
+  "name": "student(add)",
+  "op": "insert",
+  "data": {
+    "identify": 2024080313,
+    "name": "caohao",
+    "score": 91.5,
+    "created_at": "2025-01-05T20:14:50.702248+08:00",
+    "exam_time": "15:30:00",
+    "birthday": "1987-08-27",
+    "updated_at": "2025-01-05T20:14:50.702249+08:00",
+    "article": "groundbreaking work in cryptography and complexity theory",
+    "id": 234047220842770433,
+    "image": "SU1BR0UuUENH",
+    "gender": 1,
+    "age": 23
+  },
+  "data_type": {
+    "id": 14,
+    "image": 2,
+    "created_at": 1,
+    "identify": 10,
+    "gender": 7,
+    "age": 6,
+    "updated_at": 1
   }
-]
+}
 ```
 horm 基础类型，会在数据统一接入服务根据指定的数据源引擎映射、解析成对应的类型，例如在 mysql 和 clickhouse 类型映射为：
 ```go
@@ -322,18 +321,18 @@ var ClickHouseTypeMap = map[string]structs.Type{
     "name": "student(add)",
     "op": "insert",
     "data": {
-      "id": 227759629650636801,
-      "identify": 2024080313,
+      "exam_time": "15:30:00",
+      "identify": 2024092316,
       "name": "jerry",
-      "image": "SU1BR0UuUENH",
+      "score": 82.5,
+      "created_at": "2025-01-05T20:30:21.977161+08:00",
+      "gender": 1,
       "article": "contributions to deep learning in artificial intelligence",
-      "created_at": "2024-12-19T11:55:27.278103+08:00",
-      "updated_at": "2024-12-19T11:55:27.278105+08:00",
-      "age": 23,
-      "birthday": "1987-08-27T00:00:00Z",
-      "gender": 2,
-      "score": 91.5,
-      "exam_time": "15:30:00"
+      "age": 17,
+      "updated_at": "2025-01-05T20:30:21.977162+08:00",
+      "id": 234049805125431297,
+      "image": "SU1BR0UuUENH",
+      "birthday": "1995-03-24"
     }
   },
   {
@@ -351,21 +350,21 @@ var ClickHouseTypeMap = map[string]structs.Type{
 ```json
 {
   "add": {
-    "id": "227759629650636801",
+    "id": "234049805125431297",
     "rows_affected": 1
   },
   "find": {
-    "id": 227759629650636801,
     "name": "jerry",
-    "article": "contributions to deep learning in artificial intelligence",
-    "created_at": "2024-12-19T11:55:27+08:00",
-    "birthday": "1987-08-27T00:00:00+09:00",
-    "updated_at": "2024-12-19T11:55:27+08:00",
-    "identify": 2024080313,
-    "gender": 2,
-    "age": 23,
-    "score": 91.5,
     "image": "SU1BR0UuUENH",
+    "article": "contributions to deep learning in artificial intelligence",
+    "updated_at": "2025-01-05T20:30:22+08:00",
+    "birthday": "1995-03-24T00:00:00+08:00",
+    "created_at": "2025-01-05T20:30:22+08:00",
+    "id": 234049805125431297,
+    "identify": 2024092316,
+    "gender": 1,
+    "age": 17,
+    "score": 82.5,
     "exam_time": "15:30:00"
   }
 }
@@ -444,16 +443,16 @@ SELECT  `sc`.* , `s`.`name`  FROM `student_course` AS `sc`
 ```json
 {
   "created_at": "2024-11-30T20:53:57+08:00",
-  "id": 1,
-  "identify": 2024061211,
-  "age": 19,
-  "score": 89.7,
+  "id": 234047220842770433,
+  "identify": 2024080313,
+  "age": 23,
+  "score": 91.5,
   "image": "SU1BR0UuUENH",
   "exam_time": "15:30:00",
   "birthday": "1995-03-23T00:00:00+08:00",
   "gender": 1,
   "name": "caohao",
-  "article": "Compilation theory, architecture of large systems, and development of Reduced Instruction Set (RISC) computers",
+  "article": "groundbreaking work in cryptography and complexity theory",
   "updated_at": "2024-12-12T19:30:37+08:00"
 }
 ```
@@ -478,14 +477,14 @@ SELECT  `sc`.* , `s`.`name`  FROM `student_course` AS `sc`
     "image": "SU1BR0UuUENH",
     "created_at": "2024-11-30T20:53:57+08:00",
     "updated_at": "2024-12-12T19:30:37+08:00",
-    "age": 19,
+    "age": 23,
     "name": "caohao",
-    "score": 89.7,
-    "article": "Compilation theory, architecture of large systems, and development of Reduced Instruction Set (RISC) computers",
+    "score": 91.5,
+    "article": "groundbreaking work in cryptography and complexity theory",
     "exam_time": "15:30:00",
-    "birthday": "1995-03-23T00:00:00+08:00",
-    "id": 1,
-    "identify": 2024061211,
+    "birthday": "1987-08-27T00:00:00+08:00",
+    "id": 234047220842770433,
+    "identify": 2024080313,
     "gender": 1
   },
   {
@@ -524,9 +523,9 @@ SELECT  `sc`.* , `s`.`name`  FROM `student_course` AS `sc`
 ```json
 {
     "member": [
-        "{\"age\":23,\"image\":\"SU1BR0UuUENH\",\"article\":\"Artificial Intelligence\",\"id\":227518753250750465,\"score\":91.5,\"birthday\":\"1987-08-27T00:00:00Z\",\"updated_at\":\"2024-12-18T19:58:17.869141+08:00\",\"identify\":2024080313,\"exam_time\":\"15:30:00\",\"gender\":2,\"name\":\"kitty\",\"created_at\":\"2024-12-18T19:58:17.869147+08:00\"}",
-        "{\"image\":\"SU1BR0UuUENH\",\"birthday\":\"0001-01-01T00:00:00Z\",\"name\":\"kitty\",\"article\":\"Artificial Intelligence\",\"updated_at\":\"2024-12-18T19:40:41.184551+08:00\",\"gender\":2,\"score\":91.5,\"exam_time\":\"15:30:00\",\"id\":227514321192628225,\"created_at\":\"2024-12-18T19:40:41.184549+08:00\",\"identify\":2024080313,\"age\":23}",
-        "{\"score\":91.5,\"birthday\":\"0001-01-01T00:00:00Z\",\"name\":\"kitty\",\"article\":\"Artificial Intelligence\",\"exam_time\":\"15:30:00\",\"updated_at\":\"2024-12-17T20:49:17.568859+08:00\",\"id\":227169198692904961,\"age\":23,\"created_at\":\"2024-12-17T20:49:17.568853+08:00\",\"gender\":2,\"identify\":2024080313,\"image\":\"SU1BR0UuUENH\"}"
+        "{\"age\":23,\"image\":\"SU1BR0UuUENH\",\"article\":\"contributions to deep learning in artificial intelligence\",\"id\":227518753250750465,\"score\":91.5,\"birthday\":\"1987-08-27T00:00:00Z\",\"updated_at\":\"2024-12-18T19:58:17.869141+08:00\",\"identify\":2024080313,\"exam_time\":\"15:30:00\",\"gender\":2,\"name\":\"jerry\",\"created_at\":\"2024-12-18T19:58:17.869147+08:00\"}",
+        "{\"image\":\"SU1BR0UuUENH\",\"birthday\":\"0001-01-01T00:00:00Z\",\"name\":\"jerry\",\"article\":\"contributions to deep learning in artificial intelligence\",\"updated_at\":\"2024-12-18T19:40:41.184551+08:00\",\"gender\":2,\"score\":91.5,\"exam_time\":\"15:30:00\",\"id\":227514321192628225,\"created_at\":\"2024-12-18T19:40:41.184549+08:00\",\"identify\":2024080313,\"age\":23}",
+        "{\"score\":91.5,\"birthday\":\"0001-01-01T00:00:00Z\",\"name\":\"jerry\",\"article\":\"contributions to deep learning in artificial intelligence\",\"exam_time\":\"15:30:00\",\"updated_at\":\"2024-12-17T20:49:17.568859+08:00\",\"id\":227169198692904961,\"age\":23,\"created_at\":\"2024-12-17T20:49:17.568853+08:00\",\"gender\":2,\"identify\":2024080313,\"image\":\"SU1BR0UuUENH\"}"
     ],
     "score": [
         23,
@@ -552,42 +551,42 @@ SELECT  `sc`.* , `s`.`name`  FROM `student_course` AS `sc`
 返回结果，我们将分页信息放在 detail 中，数据结果放在 data 中：
 ```json
 {
-    "detail": {
-        "total": 2,
-        "total_page": 1,
-        "page": 1,
-        "size": 10
+  "detail": {
+    "total": 2,
+    "total_page": 1,
+    "page": 1,
+    "size": 10
+  },
+  "data": [
+    {
+      "score": 91.5,
+      "image": "SU1BR0UuUENH",
+      "created_at": "2025-01-05T20:20:06+08:00",
+      "gender": 1,
+      "age": 23,
+      "name": "caohao",
+      "article": "groundbreaking work in cryptography and complexity theory",
+      "exam_time": "15:30:00",
+      "birthday": "1987-08-27T00:00:00+09:00",
+      "updated_at": "2025-01-05T20:20:06+08:00",
+      "id": 234047220842770433,
+      "identify": 2024080313
     },
-    "data": [
-        {
-            "updated_at": "2024-12-12T19:30:37+08:00",
-            "identify": 2024061211,
-            "name": "caohao",
-            "score": 89.7,
-            "image": "SU1BR0UuUENH",
-            "exam_time": "15:30:00",
-            "created_at": "2024-11-30T20:53:57+08:00",
-            "id": 1,
-            "gender": 1,
-            "age": 19,
-            "article": "Compilation theory, architecture of large systems, and development of Reduced Instruction Set (RISC) computers",
-            "birthday": "1995-03-23T00:00:00+08:00"
-        },
-        {
-            "updated_at": "2024-12-12T20:41:00+08:00",
-            "identify": 2024070733,
-            "gender": 1,
-            "age": 17,
-            "image": "SU1BR0UuUENH",
-            "exam_time": "14:30:00",
-            "birthday": "1993-02-22T00:00:00+08:00",
-            "created_at": "2024-11-30T20:57:03+08:00",
-            "id": 2,
-            "name": "jerry",
-            "score": 92.3,
-            "article": "Design and analysis of algorithms and data structures"
-        }
-    ]
+    {
+      "age": 17,
+      "name": "jerry",
+      "image": "SU1BR0UuUENH",
+      "article": "contributions to deep learning in artificial intelligence",
+      "birthday": "1995-03-24T00:00:00+08:00",
+      "updated_at": "2025-01-05T20:30:22+08:00",
+      "id": 234049805125431297,
+      "identify": 2024092316,
+      "exam_time": "15:30:00",
+      "created_at": "2025-01-05T20:30:22+08:00",
+      "gender": 1,
+      "score": 82.5
+    }
+  ]
 }
 ```
 
@@ -623,24 +622,27 @@ type Detail struct {
 
 ```json
 [
-    {
-        "name": "redis_student(zadd)",
-        "op": "zadd",
-        "key": "student_age_rank",
-        "args": [
-            23,
-            "{\"id\":227523618735665153,\"gender\":2,\"age\":23,\"name\":\"kitty\",\"identify\":2024080313,\"created_at\":\"2024-12-18T20:17:37.89164+08:00\",\"image\":\"SU1BR0UuUENH\",\"birthday\":\"1987-08-27T00:00:00Z\",\"updated_at\":\"2024-12-18T20:17:37.891649+08:00\",\"article\":\"Artificial Intelligence\",\"exam_time\":\"15:30:00\",\"score\":91.5}"
-        ]
-    },
-    {
-        "name": "redis_student(range)",
-        "op": "zrangebyscore",
-        "key": "student_age_rank",
-        "args": [10, 50],
-        "params": {
-            "with_scores": true
-        }
+  {
+    "name": "redis_student(zadd)",
+    "op": "zadd",
+    "key": "student_age_rank",
+    "args": [
+      17,
+      "{\"id\":234051825504890881,\"exam_time\":\"15:30:00\",\"name\":\"jerry\",\"image\":\"SU1BR0UuUENH\",\"updated_at\":\"2025-01-05T20:38:23.673443+08:00\",\"article\":\"contributions to deep learning in artificial intelligence\",\"gender\":1,\"age\":17,\"birthday\":\"1987-08-27\",\"created_at\":\"2025-01-05T20:38:23.67346+08:00\",\"identify\":2024092316,\"score\":82.5}"
+    ]
+  },
+  {
+    "name": "redis_student(range)",
+    "op": "zrangebyscore",
+    "key": "student_age_rank",
+    "args": [
+      10,
+      50
+    ],
+    "params": {
+      "with_scores": true
     }
+  }
 ]
 ```
 
@@ -671,64 +673,64 @@ type Detail struct {
 返回：
 ```json
 {
-    "student": {
-        "detail": {
-            "total": 2,
-            "total_page": 1,
-            "page": 1,
-            "size": 10
-        },
-        "data": [
-            {
-                "score": 89.7,
-                "image": "SU1BR0UuUENH",
-                "article": "Compilation theory, architecture of large systems, and development of Reduced Instruction Set (RISC) computers",
-                "exam_time": "15:30:00",
-                "gender": 1,
-                "identify": 2024061211,
-                "age": 19,
-                "name": "caohao",
-                "birthday": "1995-03-23T00:00:00+08:00",
-                "created_at": "2024-11-30T20:53:57+08:00",
-                "updated_at": "2024-12-12T19:30:37+08:00",
-                "id": 1
-            },
-            {
-                "article": "Design and analysis of algorithms and data structures",
-                "exam_time": "14:30:00",
-                "birthday": "1993-02-22T00:00:00+08:00",
-                "id": 2,
-                "gender": 1,
-                "age": 17,
-                "name": "jerry",
-                "score": 92.3,
-                "created_at": "2024-11-30T20:57:03+08:00",
-                "updated_at": "2024-12-12T20:41:00+08:00",
-                "identify": 2024070733,
-                "image": "SU1BR0UuUENH"
-            }
-        ]
+  "student": {
+    "detail": {
+      "total": 2,
+      "total_page": 1,
+      "page": 1,
+      "size": 10
     },
-    "student_course": [
-        {
-            "id": 1,
-            "identify": 2024061211,
-            "course": "Math",
-            "hours": 54
-        },
-        {
-            "id": 2,
-            "identify": 2024061211,
-            "course": "Physics",
-            "hours": 32
-        },
-        {
-            "course": "English",
-            "hours": 68,
-            "id": 3,
-            "identify": 2024070733
-        }
+    "data": [
+      {
+        "score": 91.5,
+        "exam_time": "15:30:00",
+        "birthday": "1987-08-27T00:00:00+09:00",
+        "updated_at": "2025-01-05T20:20:06+08:00",
+        "id": 234047220842770433,
+        "name": "caohao",
+        "age": 23,
+        "image": "SU1BR0UuUENH",
+        "article": "groundbreaking work in cryptography and complexity theory",
+        "created_at": "2025-01-05T20:20:06+08:00",
+        "identify": 2024080313,
+        "gender": 1
+      },
+      {
+        "name": "jerry",
+        "score": 82.5,
+        "updated_at": "2025-01-05T20:30:22+08:00",
+        "article": "contributions to deep learning in artificial intelligence",
+        "exam_time": "15:30:00",
+        "birthday": "1995-03-24T00:00:00+08:00",
+        "id": 234049805125431297,
+        "identify": 2024092316,
+        "gender": 1,
+        "age": 17,
+        "image": "SU1BR0UuUENH",
+        "created_at": "2025-01-05T20:30:22+08:00"
+      }
     ]
+  },
+  "student_course": [
+    {
+      "course": "Math",
+      "hours": 54,
+      "id": 1,
+      "identify": 2024080313
+    },
+    {
+      "id": 2,
+      "identify": 2024080313,
+      "course": "Physics",
+      "hours": 32
+    },
+    {
+      "id": 3,
+      "identify": 2024092316,
+      "course": "English",
+      "hours": 68
+    }
+  ]
 }
 ```
 
@@ -759,20 +761,20 @@ type Detail struct {
 ```json
 {
     "student": {
-        "article": "Compilation theory, architecture of large systems, and development of Reduced Instruction Set (RISC) computers",
-        "identify": 2024061211,
-        "score": 89.7,
+        "article": "groundbreaking work in cryptography and complexity theory",
+        "identify": 2024080313,
+        "score": 91.5,
         "image": "SU1BR0UuUENH",
         "name": "caohao",
         "exam_time": "15:30:00",
-        "birthday": "1995-03-23T00:00:00+08:00",
+        "birthday": "1987-08-27T00:00:00+08:00",
         "created_at": "2024-11-30T20:53:57+08:00",
         "updated_at": "2024-12-12T19:30:37+08:00",
-        "id": 1,
+        "id": 234047220842770433,
         "gender": 1,
-        "age": 19
+        "age": 23
     },
-    "score_rank": 2
+    "score_rank": 1
 }
 ```
 
@@ -784,7 +786,7 @@ type Detail struct {
         "name": "redis_student(score_rank)",
         "op": "zrank",
         "key": "student_score_rank",
-        "args": [2024061211]
+        "args": [2024080313]
     },
     {
         "name": "score_rank_reward",
@@ -875,127 +877,127 @@ type RetBase struct {
 返回：
 ```json
 {
-    "student": {
-        "detail": {
-            "total": 2,
-            "total_page": 1,
-            "page": 1,
-            "size": 10
-        },
-        "data": [
+  "student": {
+    "detail": {
+      "total": 2,
+      "total_page": 1,
+      "page": 1,
+      "size": 10
+    },
+    "data": [
+      {
+        "id": 234047220842770433,
+        "identify": 2024080313,
+        "gender": 1,
+        "age": 23,
+        "name": "caohao",
+        "score": 91.5,
+        "image": "SU1BR0UuUENH",
+        "article": "groundbreaking work in cryptography and complexity theory",
+        "exam_time": "15:30:00",
+        "birthday": "1987-08-27T00:00:00+09:00",
+        "created_at": "2025-01-05T20:20:06+08:00",
+        "updated_at": "2025-01-05T20:20:06+08:00",
+        "student_course": {
+          "data": [
             {
-                "id": 1,
-                "identify": 2024061211,
-                "gender": 1,
-                "age": 19,
-                "name": "caohao",
-                "score": 89.7,
-                "image": "SU1BR0UuUENH",
-                "article": "Compilation theory, architecture of large systems, and development of Reduced Instruction Set (RISC) computers",
-                "exam_time": "15:30:00",
-                "birthday": "1995-03-23T00:00:00+08:00",
-                "created_at": "2024-11-30T20:53:57+08:00",
-                "updated_at": "2024-12-12T19:30:37+08:00",
-                "student_course": {
-                    "data": [
-                        {
-                            "id": 1,
-                            "identify": 2024061211,
-                            "course": "Math",
-                            "hours": 54,
-                            "course_info": {
-                                "data": {
-                                    "course": "Math",
-                                    "teacher": "Simon",
-                                    "time": "11:00:00"
-                                }
-                            }
-                        },
-                        {
-                            "id": 2,
-                            "identify": 2024061211,
-                            "course": "Physics",
-                            "hours": 32,
-                            "course_info": {
-                                "data": {
-                                    "course": "Physics",
-                                    "teacher": "Richard",
-                                    "time": "14:00:00"
-                                }
-                            }
-                        }
-                    ]
-                },
-                "teacher_info": {
-                    "data": [
-                        {
-                            "teacher": "Richard",
-                            "age": 57,
-                            "test_nil": {
-                                "is_nil": true
-                            }
-                        },
-                        {
-                            "teacher": "Simon",
-                            "age": 61,
-                            "test_nil": {
-                                "is_nil": true
-                            }
-                        }
-                    ]
+              "id": 1,
+              "identify": 2024080313,
+              "course": "Math",
+              "hours": 54,
+              "course_info": {
+                "data": {
+                  "course": "Math",
+                  "teacher": "Simon",
+                  "time": "11:00:00"
                 }
+              }
             },
             {
-                "id": 2,
-                "identify": 2024070733,
-                "gender": 1,
-                "age": 17,
-                "name": "jerry",
-                "score": 92.3,
-                "image": "SU1BR0UuUENH",
-                "article": "Design and analysis of algorithms and data structures",
-                "exam_time": "14:30:00",
-                "birthday": "1993-02-22T00:00:00+08:00",
-                "created_at": "2024-11-30T20:57:03+08:00",
-                "updated_at": "2024-12-12T20:41:00+08:00",
-                "student_course": {
-                    "data": [
-                        {
-                            "id": 3,
-                            "identify": 2024070733,
-                            "course": "English",
-                            "hours": 68,
-                            "course_info": {
-                                "data": {
-                                    "course": "English",
-                                    "teacher": "Dennis",
-                                    "time": "15:30:00"
-                                }
-                            }
-                        }
-                    ]
-                },
-                "teacher_info": {
-                    "data": [
-                        {
-                            "teacher": "Dennis",
-                            "age": 39,
-                            "test_nil": {
-                                "is_nil": true
-                            }
-                        }
-                    ]
+              "id": 2,
+              "identify": 2024080313,
+              "course": "Physics",
+              "hours": 32,
+              "course_info": {
+                "data": {
+                  "course": "Physics",
+                  "teacher": "Richard",
+                  "time": "14:00:00"
                 }
+              }
             }
-        ]
-    },
-    "test_error": {
-        "error": {
-            "type": 2,
-            "code": 1054,
-            "msg": "mysql query error: [Unknown column 'not_exist_field' in 'where clause']"
+          ]
+        },
+        "teacher_info": {
+          "data": [
+            {
+              "teacher": "Richard",
+              "age": 57,
+              "test_nil": {
+                "is_nil": true
+              }
+            },
+            {
+              "teacher": "Simon",
+              "age": 61,
+              "test_nil": {
+                "is_nil": true
+              }
+            }
+          ]
         }
+      },
+      {
+        "id": 234049805125431297,
+        "identify": 2024092316,
+        "gender": 1,
+        "age": 17,
+        "name": "jerry",
+        "score": 82.5,
+        "image": "SU1BR0UuUENH",
+        "article": "contributions to deep learning in artificial intelligence",
+        "exam_time": "15:30:00",
+        "birthday": "1995-03-24T00:00:00+08:00",
+        "created_at": "2025-01-05T20:30:22+08:00",
+        "updated_at": "2025-01-05T20:30:22+08:00",
+        "student_course": {
+          "data": [
+            {
+              "id": 3,
+              "identify": 2024092316,
+              "course": "English",
+              "hours": 68,
+              "course_info": {
+                "data": {
+                  "course": "English",
+                  "teacher": "Dennis",
+                  "time": "15:30:00"
+                }
+              }
+            }
+          ]
+        },
+        "teacher_info": {
+          "data": [
+            {
+              "teacher": "Dennis",
+              "age": 39,
+              "test_nil": {
+                "is_nil": true
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "test_error": {
+    "error": {
+      "type": 2,
+      "code": 1054,
+      "msg": "mysql query error: [Unknown column 'not_exist_field' in 'where clause']"
     }
+  }
 }
 ```
 ### 引用路径
@@ -1163,49 +1165,42 @@ const (
 当 Elastic 批量插入新数据时，返回 `[]*proto.ModRet`，我们可以遍历返回结果，`status` 为错误码，当 `status!=0` 则该条记录
 插入失败，`reason`为失败原因，这样，我们可以针对失败的记录做特殊处理，比如重试。
 ```json
-{
-  "name": "es_student",
-  "op": "insert",
-  "datas": [
-    {
-      "exam_time": "15:30:00",
-      "birthday": "1987-08-27",
-      "identify": 2024061211,
-      "age": 19,
-      "score": 89.7,
-      "id": 1,
-      "article": "enhanced human understanding of the role of randomness and pseudo-randomness in computing.",
-      "name": "wigderson",
-      "created_at": "2025-01-03T21:20:18.33406+08:00",
-      "updated_at": "2025-01-03T21:20:18.334061+08:00",
-      "gender": 1,
-      "image": "SU1BR0UuUENH"
-    },
-    {
-      "gender": 1,
-      "exam_time": "15:30:00",
-      "age": 17,
-      "birthday": "1987-08-27",
-      "updated_at": "2025-01-03T21:20:18.334081+08:00",
-      "id": 2,
-      "image": "SU1BR0UuUENH",
-      "article": "practice and theory of programming language and systems design",
-      "identify": 2024070733,
-      "name": "liskov",
-      "score": 92.3,
-      "created_at": "2025-01-03T21:20:18.33408+08:00"
-    }
-  ],
-  "data_type": {
-    "updated_at": 1,
-    "gender": 7,
-    "image": 2,
-    "identify": 10,
-    "age": 6,
-    "id": 14,
-    "created_at": 1
+[
+  {
+    "name": "es_student",
+    "op": "insert",
+    "datas": [
+      {
+        "image": "SU1BR0UuUENH",
+        "gender": 1,
+        "age": 67,
+        "name": "wigderson",
+        "exam_time": "14:30:00",
+        "id": 1,
+        "article": "enhanced human understanding of the role of randomness and pseudo-randomness in computing.",
+        "updated_at": "2025-01-05T20:58:37.585526+08:00",
+        "identify": 2024061211,
+        "birthday": "1967-08-27",
+        "created_at": "2025-01-05T20:58:37.585539+08:00",
+        "score": 98.3
+      },
+      {
+        "age": 59,
+        "id": 2,
+        "article": "practice and theory of programming language and systems design",
+        "exam_time": "11:30:00",
+        "created_at": "2025-01-05T20:58:37.585541+08:00",
+        "gender": 2,
+        "updated_at": "2025-01-05T20:58:37.585543+08:00",
+        "score": 99.1,
+        "image": "SU1BR0UuUENH",
+        "birthday": "1967-08-27",
+        "identify": 2024070733,
+        "name": "liskov"
+      }
+    ]
   }
-}
+]
 ```
 
 返回结果：
@@ -1251,65 +1246,64 @@ GET /es_student/_search
 
 ```json
 {
-  "took" : 2,
-  "timed_out" : false,
-  "_shards" : {
-    "total" : 1,
-    "successful" : 1,
-    "skipped" : 0,
-    "failed" : 0
+  "took": 0,
+  "timed_out": false,
+  "_shards": {
+    "total": 1,
+    "successful": 1,
+    "skipped": 0,
+    "failed": 0
   },
-  "hits" : {
-    "total" : {
-      "value" : 2,
-      "relation" : "eq"
+  "hits": {
+    "total": {
+      "value": 2,
+      "relation": "eq"
     },
-    "max_score" : 1.0,
-    "hits" : [
+    "max_score": 1,
+    "hits": [
       {
-        "_index" : "es_student",
-        "_type" : "_doc",
-        "_id" : "Ay7DApQBdHFFOkFBRxKQ",
-        "_score" : 1.0,
-        "_source" : {
-          "age" : 19,
-          "article" : "enhanced human understanding of the role of randomness and pseudo-randomness in computing.",
-          "birthday" : "1987-08-27",
-          "created_at" : "2024-12-26T19:38:59.750313+08:00",
-          "exam_time" : "15:30:00",
-          "gender" : 1,
-          "id" : 1,
-          "identify" : 2024061211,
-          "image" : "SU1BR0UuUENH",
-          "name" : "wigderson",
-          "score" : 89.7,
-          "updated_at" : "2024-12-26T19:38:59.750316+08:00"
+        "_index": "es_student",
+        "_type": "_doc",
+        "_id": "z6SONpQBT1ym-Bx5C67P",
+        "_score": 1,
+        "_source": {
+          "age": 67,
+          "article": "enhanced human understanding of the role of randomness and pseudo-randomness in computing.",
+          "birthday": "1967-08-27",
+          "created_at": "2025-01-05T20:58:37.585539+08:00",
+          "exam_time": "14:30:00",
+          "gender": 1,
+          "id": 1,
+          "identify": 2024061211,
+          "image": "SU1BR0UuUENH",
+          "name": "wigderson",
+          "score": 98.3,
+          "updated_at": "2025-01-05T20:58:37.585526+08:00"
         }
       },
       {
-        "_index" : "es_student",
-        "_type" : "_doc",
-        "_id" : "BC7DApQBdHFFOkFBRxKQ",
-        "_score" : 1.0,
-        "_source" : {
-          "age" : 17,
-          "article" : "practice and theory of programming language and systems design",
-          "birthday" : "1987-08-27",
-          "created_at" : "2024-12-26T19:38:59.750328+08:00",
-          "exam_time" : "15:30:00",
-          "gender" : 1,
-          "id" : 2,
-          "identify" : 2024070733,
-          "image" : "SU1BR0UuUENH",
-          "name" : "liskov",
-          "score" : 92.3,
-          "updated_at" : "2024-12-26T19:38:59.750331+08:00"
+        "_index": "es_student",
+        "_type": "_doc",
+        "_id": "0KSONpQBT1ym-Bx5C67P",
+        "_score": 1,
+        "_source": {
+          "age": 59,
+          "article": "practice and theory of programming language and systems design",
+          "birthday": "1967-08-27",
+          "created_at": "2025-01-05T20:58:37.585541+08:00",
+          "exam_time": "11:30:00",
+          "gender": 2,
+          "id": 2,
+          "identify": 2024070733,
+          "image": "SU1BR0UuUENH",
+          "name": "liskov",
+          "score": 99.1,
+          "updated_at": "2025-01-05T20:58:37.585543+08:00"
         }
       }
     ]
   }
 }
-
 ```
 
 # 查询
