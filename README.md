@@ -234,7 +234,7 @@ uint8~uint64 时，需要在执行单元 data_type 字段里将数据类型带�
     "data": {
       "created_at": "2024-12-28T19:47:05.056251+08:00",
       "updated_at": "2024-12-28T19:47:05.056229+08:00",
-      "name": "kitty",
+      "name": "caohao",
       "score": 91.5,
       "image": "SU1BR0UuUENH",
       "exam_time": "15:30:00",
@@ -243,7 +243,7 @@ uint8~uint64 时，需要在执行单元 data_type 字段里将数据类型带�
       "birthday": "1987-08-27",
       "identify": 2024080313,
       "age": 23,
-      "article": "Artificial Intelligence"
+      "article": "groundbreaking work in cryptography and complexity theory"
     },
     "data_type": {
       "identify": 10,
@@ -324,9 +324,9 @@ var ClickHouseTypeMap = map[string]structs.Type{
     "data": {
       "id": 227759629650636801,
       "identify": 2024080313,
-      "name": "kitty",
+      "name": "jerry",
       "image": "SU1BR0UuUENH",
-      "article": "Artificial Intelligence",
+      "article": "contributions to deep learning in artificial intelligence",
       "created_at": "2024-12-19T11:55:27.278103+08:00",
       "updated_at": "2024-12-19T11:55:27.278105+08:00",
       "age": 23,
@@ -356,8 +356,8 @@ var ClickHouseTypeMap = map[string]structs.Type{
   },
   "find": {
     "id": 227759629650636801,
-    "name": "kitty",
-    "article": "Artificial Intelligence",
+    "name": "jerry",
+    "article": "contributions to deep learning in artificial intelligence",
     "created_at": "2024-12-19T11:55:27+08:00",
     "birthday": "1987-08-27T00:00:00+09:00",
     "updated_at": "2024-12-19T11:55:27+08:00",
@@ -1174,8 +1174,8 @@ const (
       "age": 19,
       "score": 89.7,
       "id": 1,
-      "article": "Compilation theory, architecture of large systems, and development of Reduced Instruction Set (RISC) computers",
-      "name": "caohao",
+      "article": "enhanced human understanding of the role of randomness and pseudo-randomness in computing.",
+      "name": "wigderson",
       "created_at": "2025-01-03T21:20:18.33406+08:00",
       "updated_at": "2025-01-03T21:20:18.334061+08:00",
       "gender": 1,
@@ -1189,9 +1189,9 @@ const (
       "updated_at": "2025-01-03T21:20:18.334081+08:00",
       "id": 2,
       "image": "SU1BR0UuUENH",
-      "article": "Design and analysis of algorithms and data structures",
+      "article": "practice and theory of programming language and systems design",
       "identify": 2024070733,
-      "name": "jerry",
+      "name": "liskov",
       "score": 92.3,
       "created_at": "2025-01-03T21:20:18.33408+08:00"
     }
@@ -1273,7 +1273,7 @@ GET /es_student/_search
         "_score" : 1.0,
         "_source" : {
           "age" : 19,
-          "article" : "Compilation theory, architecture of large systems, and development of Reduced Instruction Set (RISC) computers",
+          "article" : "enhanced human understanding of the role of randomness and pseudo-randomness in computing.",
           "birthday" : "1987-08-27",
           "created_at" : "2024-12-26T19:38:59.750313+08:00",
           "exam_time" : "15:30:00",
@@ -1281,7 +1281,7 @@ GET /es_student/_search
           "id" : 1,
           "identify" : 2024061211,
           "image" : "SU1BR0UuUENH",
-          "name" : "caohao",
+          "name" : "wigderson",
           "score" : 89.7,
           "updated_at" : "2024-12-26T19:38:59.750316+08:00"
         }
@@ -1293,7 +1293,7 @@ GET /es_student/_search
         "_score" : 1.0,
         "_source" : {
           "age" : 17,
-          "article" : "Design and analysis of algorithms and data structures",
+          "article" : "practice and theory of programming language and systems design",
           "birthday" : "1987-08-27",
           "created_at" : "2024-12-26T19:38:59.750328+08:00",
           "exam_time" : "15:30:00",
@@ -1301,7 +1301,7 @@ GET /es_student/_search
           "id" : 2,
           "identify" : 2024070733,
           "image" : "SU1BR0UuUENH",
-          "name" : "jerry",
+          "name" : "liskov",
           "score" : 92.3,
           "updated_at" : "2024-12-26T19:38:59.750331+08:00"
         }
