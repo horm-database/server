@@ -1232,6 +1232,15 @@ type ModRet struct {
 	Reason      string                 `orm:"reason,omitempty" json:"reason,omitempty"`               // mod 失败原因
 	Extras      map[string]interface{} `orm:"extras,omitempty" json:"extras,omitempty"`               // 更多详细信息
 }
+
+type ID string
+
+func (id ID) String() string
+func (id ID) Float64() float64
+func (id ID) Int() int
+func (id ID) Int64() int64
+func (id ID) Uint()
+func (id ID) Uint64()
 ```
 
 上面语句在 es 插入了两条数据：
