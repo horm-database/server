@@ -200,7 +200,7 @@ const (
 	TypeJSON   Type = 17
 )
 
-var TypeDesc = map[string]Type{
+var OrmType = map[string]Type{
 	"time":   TypeTime,
 	"bytes":  TypeBytes,
 	"float":  TypeFloat,

@@ -106,6 +106,7 @@ func referHandle(dbType int, unit *proto.Unit, node *obj.Tree) (where, having, d
 // mapReferHandle map 类型引用处理
 func mapReferHandle(node *obj.Tree, dbType int, data map[string]interface{}) (map[string]interface{}, bool, error) {
 	result := map[string]interface{}{}
+
 	for k, v := range data {
 		nk := util.RemoveComments(k)
 		if types.FirstWord(nk, 1) == "@" { //引用
