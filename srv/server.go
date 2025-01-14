@@ -24,7 +24,7 @@ import (
 	"sync"
 
 	"github.com/horm-database/common/log/logger"
-	"github.com/horm-database/common/util"
+	"github.com/horm-database/common/types"
 	"github.com/horm-database/server/srv/codec"
 	"github.com/horm-database/server/srv/naming"
 	"github.com/horm-database/server/srv/transport"
@@ -135,18 +135,18 @@ func newService(name, protocol string, cfg *config) Service {
 		ServiceName:      name,
 		Env:              cfg.Env,
 		Machine:          cfg.Machine,
-		Timeout:          util.GetMillisecond(cfg.Server.Timeout),
-		MaxCloseWaitTime: util.GetMillisecond(cfg.Server.MaxCloseWaitTime),
+		Timeout:          types.GetMillisecond(cfg.Server.Timeout),
+		MaxCloseWaitTime: types.GetMillisecond(cfg.Server.MaxCloseWaitTime),
 		TransportOptions: transport.Options{
 			ServiceName:  name,
 			Protocol:     protocol,
 			Network:      "tcp",
 			EventLoopNum: cfg.Server.EventLoopNum,
-			IdleTimeout:  util.GetMillisecond(cfg.Server.IdleTime),
+			IdleTimeout:  types.GetMillisecond(cfg.Server.IdleTime),
 		},
 	}
 
-	opts.CloseWaitTime = util.GetMillisecond(cfg.Server.CloseWaitTime)
+	opts.CloseWaitTime = types.GetMillisecond(cfg.Server.CloseWaitTime)
 	if opts.CloseWaitTime > maxCloseWaitTime { // 注销名字服务之后等待时间最多为 10s
 		opts.CloseWaitTime = maxCloseWaitTime
 	}
