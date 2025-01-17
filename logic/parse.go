@@ -361,7 +361,7 @@ func parseParallelResult(node *obj.Tree) (interface{}, map[string]bool, map[stri
 func parseCompResult(node *obj.Tree) map[string]interface{} {
 	result := map[string]interface{}{}
 	if node.IsSub {
-		result, _ = types.ToMap(node.ParentRet)
+		result, _ = types.ToMap(node.ParentRet, "")
 	}
 
 	for {

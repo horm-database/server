@@ -62,7 +62,7 @@ func query(ctx context.Context, appid uint64,
 	}
 
 	// 引用处理
-	where, having, data, datas, key, args, isNil, err := referHandle(dbInfo.Addr.Type, unit, node)
+	where, having, data, datas, key, val, args, isNil, err := referHandle(dbInfo.Addr.Type, unit, node)
 	if err != nil || isNil {
 		return nil, nil, isNil, err
 	}
@@ -89,11 +89,14 @@ func query(ctx context.Context, appid uint64,
 
 	req.Prefix = unit.Prefix
 	req.Key = key
-	req.Args = args
+	req.Keys = unit.Keys
 	req.Bytes = unit.Bytes
+	req.Val = val
 
 	req.Params = unit.Params
+
 	req.Query = unit.Query
+	req.Args = args
 
 	defer func() {
 		deferPluginsHandle(ctx, req, rsp, appid, unit.Extend, tblTable)

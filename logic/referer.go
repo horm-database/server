@@ -31,7 +31,7 @@ import (
 
 // 将引用替换为具体的值
 func referHandle(dbType int, unit *proto.Unit, node *obj.Tree) (where, having, data map[string]interface{},
-	datas []map[string]interface{}, key string, args []interface{}, isNil bool, err error) {
+	datas []map[string]interface{}, key string, val interface{}, args []interface{}, isNil bool, err error) {
 	if len(unit.Args) > 0 {
 		args, isNil, err = argsReferHandle(node, unit.Args, unit.DataType)
 		if err != nil || isNil {
@@ -44,6 +44,16 @@ func referHandle(dbType int, unit *proto.Unit, node *obj.Tree) (where, having, d
 		if err != nil || isNil {
 			return
 		}
+	}
+
+	strVal, ok := unit.Val.(string)
+	if ok {
+		val, isNil, err = keyReferHandle(node, strVal)
+		if err != nil || isNil {
+			return
+		}
+	} else {
+		val = unit.Val
 	}
 
 	if hasReferer(unit.Where) {
@@ -131,7 +141,7 @@ func mapReferHandle(node *obj.Tree, dbType int, data map[string]interface{}) (ma
 						if types.IsNil(arrVal) {
 							subMaps[index] = nil
 						} else {
-							mapV, err := types.ToMap(arrVal.Interface())
+							mapV, err := types.ToMap(arrVal.Interface(), "")
 							if err != nil {
 								return nil, false, err
 							}
@@ -145,7 +155,7 @@ func mapReferHandle(node *obj.Tree, dbType int, data map[string]interface{}) (ma
 					}
 					result[k] = subMaps
 				} else {
-					mapV, err := types.ToMap(v)
+					mapV, err := types.ToMap(v, "")
 					if err != nil {
 						return nil, false, err
 					}
@@ -307,9 +317,7 @@ func findReferer(node *obj.Tree, referer string) (ret interface{}, isNil bool, e
 				return nil, false, err
 			}
 
-			if ret != nil {
-				ret = reflect.Indirect(reflect.ValueOf(ret)).Interface()
-			}
+			ret = types.Indirect(ret)
 			return
 		} else if strings.Index(refererPath, nodePath) == 0 {
 			if len(node.SubQuery) == 0 {
