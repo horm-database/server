@@ -331,7 +331,7 @@ func apiHandle(ctx context.Context, handler Handler, msg *cc.Msg, reqBody []byte
 			fields = append(fields, logger.Field{"files", "srv/service.go func=apiHandle()"})
 			log.GetLogger(msg).Error(err.Error(), fields...)
 		} else {
-			respStr, _ := json.MarshalBaseToString(rsp, json.EncodeTypeFast)
+			respStr := json.MarshalBaseToString(rsp, json.EncodeTypeFast)
 			log.GetLogger(msg).Info(respStr, fields...)
 		}
 	}()

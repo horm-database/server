@@ -32,5 +32,5 @@ func (s *JSONSerialization) Deserialize(in []byte, body interface{}) error {
 
 // Serialize json marshal the body into output bytes
 func (s *JSONSerialization) Serialize(body interface{}) ([]byte, error) {
-	return json.MarshalBase(body)
+	return json.MarshalBase(body), nil
 }

@@ -31,7 +31,7 @@ import (
 
 // 将引用替换为具体的值
 func referHandle(dbType int, unit *proto.Unit, node *obj.Tree) (where, having, data map[string]interface{},
-	datas []map[string]interface{}, key string, val interface{}, args []interface{}, isNil bool, err error) {
+	datas []map[string]interface{}, key, field string, val interface{}, args []interface{}, isNil bool, err error) {
 	if len(unit.Args) > 0 {
 		args, isNil, err = argsReferHandle(node, unit.Args, unit.DataType)
 		if err != nil || isNil {
@@ -41,6 +41,13 @@ func referHandle(dbType int, unit *proto.Unit, node *obj.Tree) (where, having, d
 
 	if unit.Key != "" {
 		key, isNil, err = keyReferHandle(node, unit.Key)
+		if err != nil || isNil {
+			return
+		}
+	}
+
+	if unit.Field != "" {
+		field, isNil, err = keyReferHandle(node, unit.Field)
 		if err != nil || isNil {
 			return
 		}
