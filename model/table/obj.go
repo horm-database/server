@@ -75,10 +75,9 @@ type TblAccessTable struct {
 
 type TblPlugin struct {
 	Id           int       `orm:"id,int,omitempty" json:"id"`
-	Name         string    `orm:"name,string" json:"name"`                           // 插件名称
+	Name         string    `orm:"name,string" json:"name"`                           // 插件英文名，必须全局唯一，并且数据统一接入服务插件函数注册名也务必得与该 name 保持一致
 	Intro        string    `orm:"intro,string" json:"intro"`                         // 中文简介
 	Version      string    `orm:"version,string" json:"version"`                     // 所有支持的插件版本，逗号分开
-	Func         string    `orm:"func,string" json:"func"`                           // 插件注册函数名
 	SupportTypes string    `orm:"support_types,string" json:"support_types"`         // 支持的插件类型 1-前置插件 2-后置插件 3-defer 插件，多个逗号分隔，空串为全部支持
 	Online       int8      `orm:"online,int8" json:"online"`                         // 状态 1-上线 2-下线
 	Source       int8      `orm:"source,int8" json:"source"`                         // 来源：1-官方插件 2-第三方插件 3-个人插件
@@ -91,7 +90,7 @@ type TblPlugin struct {
 
 type TblPluginConfig struct {
 	Id            int       `orm:"id,int,omitempty" json:"id"`
-	PluginID      int       `orm:"plugin_id,int" json:"plugin_id"`                  // 插件id
+	PluginName    string    `orm:"plugin_name,varchar" json:"plugin_name"`          // 插件英文名
 	PluginVersion int       `orm:"plugin_version,int" json:"plugin_version"`        // 插件版本
 	Key           string    `orm:"key,string" json:"key"`                           // 插件配置 key
 	Name          string    `orm:"name,string" json:"name"`                         // 插件配置名
@@ -109,7 +108,6 @@ type TblTablePlugin struct {
 	TableId        int       `orm:"table_id,int" json:"table_id"`                    // 表id
 	PluginID       int       `orm:"plugin_id,int" json:"plugin_id"`                  // 插件id
 	PluginVersion  int       `orm:"plugin_version,int" json:"plugin_version"`        // 插件版本
-	Type           int8      `orm:"type,int8" json:"type"`                           // 插件类型 1-前置插件 2-后置插件 3-defer 插件
 	Front          int       `orm:"front,int" json:"front"`                          // plugin execute front of me
 	ScheduleConfig string    `orm:"schedule_config,string" json:"schedule_config"`   // 插件调度配置，是一个json，内容是 map[string]interface{}
 	Config         string    `orm:"config,string" json:"config"`                     // 插件配置，是一个json，内容是 map[string]interface{}

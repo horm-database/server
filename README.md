@@ -124,10 +124,10 @@ type Unit struct {
 	From   uint64                 `json:"from,omitempty"`   // offset
 
 	// data maintain
-	Val      interface{}              `json:"val,omitempty"`       // 单条记录 val (not map/[]map)
+	Val      interface{}              `json:"val,omitempty"`       // 单条记录 val (not map)
 	Data     map[string]interface{}   `json:"data,omitempty"`      // maintain one map data
 	Datas    []map[string]interface{} `json:"datas,omitempty"`     // maintain multiple map data
-	Args     []interface{}            `json:"args,omitempty"`      // multiple args, 还可用于 query 语句的参数，或者 redis 协议，如 MGET、HMGET、HDEL 等
+	Args     []interface{}            `json:"args,omitempty"`      // multiple args, 当维护的是单条记录，但是该记录是一个数组结构，最好是放到 val 里面去，args 还可用于 query 语句的参数，或者 redis 协议，如 MGET、HMGET、HDEL 等
 	DataType map[string]types.Type    `json:"data_type,omitempty"` // 数据类型（主要用于 clickhouse，对于数据类型有强依赖），请求 json 不区分 int8、int16、int32、int64 等，只有 Number 类型，bytes 也会被当成 string 处理。
 
 	// group by
