@@ -37,14 +37,14 @@ type CacheData struct {
 	Datas   []map[string]interface{} `json:"datas,omitempty"`
 }
 
-type FrontPlugin struct{} // 缓存前置插件
-type PostPlugin struct{}  // 缓存后置插件
+type Plugin struct{}     // 缓存前置插件
+type PostPlugin struct{} // 缓存后置插件
 
-func (ft *FrontPlugin) Handle(ctx context.Context,
+func (ft *Plugin) Handle(ctx context.Context,
 	req *plugin.Request,
 	rsp *plugin.Response,
 	extend types.Map,
-	conf conf.PluginConfig) (response bool, err error) {
+	conf conf.PluginConfig, hf conf.HandleFunc) (err error) {
 	var limitField string
 	var writeCache bool
 
@@ -73,7 +73,7 @@ func (ft *FrontPlugin) Handle(ctx context.Context,
 
 				rsp.IsNil = cacheResult.IsNil
 				rsp.Detail = cacheResult.Detail
-				return true, nil
+				return nil
 			}
 		} else { //缓存变更
 			switch cacheOP {
@@ -91,7 +91,7 @@ func (ft *FrontPlugin) Handle(ctx context.Context,
 	extend["limitField"] = limitField
 	extend["writeCache"] = writeCache
 
-	return false, nil
+	return hf(ctx)
 }
 
 func (ft *PostPlugin) Handle(ctx context.Context,

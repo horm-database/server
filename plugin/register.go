@@ -30,6 +30,5 @@ func Register() {
 func registerOfficial() {
 	register("unique_key", &uniquekey.Plugin{})
 	//plugin.RegisterPlugin("batch_insert", &batch.Plugin{})
-	register("cache_front_handle", &cache.FrontPlugin{})
-	register("cache_post_handle", &cache.PostPlugin{})
+	register("cache_handle", &cache.Plugin{})
 }

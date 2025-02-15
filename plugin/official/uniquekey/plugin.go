@@ -31,7 +31,7 @@ func (ft *Plugin) Handle(ctx context.Context,
 	req *plugin.Request,
 	rsp *plugin.Response,
 	extend types.Map,
-	conf conf.PluginConfig) (response bool, err error) {
+	conf conf.PluginConfig, hf conf.HandleFunc) (err error) {
 	ukAutoGenerate, _, _ := conf.GetInt("uk_auto_generate")
 	uniqueKey, _ := conf.GetString("unique_key")
 	if (ukAutoGenerate == UKAutoGenByUStorage) && uniqueKey != "" && req.Op == consts.OpInsert {
@@ -44,5 +44,6 @@ func (ft *Plugin) Handle(ctx context.Context,
 		}
 	}
 
-	return false, nil
+	extend["unique_key"] = "xxxxx"
+	return hf(ctx)
 }

@@ -19,8 +19,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/horm-database/common/codec"
-	cc "github.com/horm-database/common/consts"
 	"github.com/horm-database/common/errs"
 	"github.com/horm-database/common/json"
 	"github.com/horm-database/common/log"
@@ -31,11 +29,9 @@ import (
 	"github.com/horm-database/orm/database"
 	"github.com/horm-database/orm/obj"
 	"github.com/horm-database/server/auth"
-	"github.com/horm-database/server/consts"
 	"github.com/horm-database/server/model/table"
 	"github.com/horm-database/server/plugin"
-
-	"github.com/barkimedes/go-deepcopy"
+	"github.com/horm-database/server/plugin/conf"
 )
 
 // 节点查询
@@ -98,10 +94,6 @@ func query(ctx context.Context, appid uint64,
 	req.Query = unit.Query
 	req.Args = args
 
-	defer func() {
-		deferPluginsHandle(ctx, req, rsp, appid, unit.Extend, tblTable)
-	}()
-
 	req.Data, err = util.FormatData(data, unit.DataType)
 	if err != nil {
 		err = errs.Newf(errs.ErrFormatData, "[%s] format insert data error: %v", realNode.GetPath(), err)
@@ -114,75 +106,50 @@ func query(ctx context.Context, appid uint64,
 		return
 	}
 
-	var response bool
-	response, result, detail, isNil, err = pluginsHandle(ctx, req, rsp, appid, unit.Extend, tblTable, consts.PrePlugin)
-	if response {
-		return result, detail, isNil, err
-	}
-
-	// change db address by plugin
-	addr := dbInfo.Addr
-	if req.Addr != nil && req.Addr.Address != "" {
-		err = util.ParseConnFromAddress(req.Addr)
-		if err != nil {
-			err = errs.Newf(errs.ErrDBAddressParse,
-				"[%s] db address [%s] parse error: %v", realNode.GetPath(), req.Addr.Address, err)
-			return
-		}
-
-		if req.Addr.WriteTimeout == 0 {
-			req.Addr.WriteTimeout = addr.WriteTimeout
-		}
-
-		if req.Addr.ReadTimeout == 0 {
-			req.Addr.ReadTimeout = addr.ReadTimeout
-		}
-
-		if req.Addr.WarnTimeout == 0 {
-			req.Addr.WarnTimeout = addr.WarnTimeout
-		}
-
-		log.Info(ctx, "change db address by plugin: from [%s.%s %s:%s/%s] to [%s.%s %s:%s/%s]",
-			cc.DBTypeDesc[addr.Type], addr.Version, addr.Network, addr.Conn.Target, addr.Conn.DB,
-			cc.DBTypeDesc[req.Addr.Type], req.Addr.Version, req.Addr.Network, req.Addr.Conn.Target, req.Addr.Conn.DB)
-		addr = req.Addr
-	}
-
-	// 校验是否有执行权限
-	if req.Op != op || req.Query != unit.Query {
-		err = auth.PermissionCheck(realNode, appid, req.Op, req.Query, true)
-		if err != nil {
-			return
-		}
-	}
-
-	// 校验表
-	err = auth.TableVerify(realNode, appid, req.Tables, tblTable.TableVerify)
+	// 获取插件执行链
+	chain, err := getPluginChain(ctx, appid, tblTable)
 	if err != nil {
 		return
 	}
 
-	// 走 db 查询
-	result, detail, isNil, err = database.QueryResult(ctx, req, realNode, addr, node.TransInfo)
+	dbExecFilter := func(ctx context.Context) error {
+		// 校验是否有执行权限
+		if req.Op != op || req.Query != unit.Query {
+			err = auth.PermissionCheck(realNode, appid, req.Op, req.Query, true)
+			if err != nil {
+				return err
+			}
+		}
 
-	rsp.IsNil = isNil
-	rsp.Detail = detail
-	rsp.Result = result
-	rsp.Error = err
+		// 校验表
+		err = auth.TableVerify(realNode, appid, req.Tables, tblTable.TableVerify)
+		if err != nil {
+			return err
+		}
 
-	response, result, detail, isNil, err = pluginsHandle(ctx, req, rsp, appid, unit.Extend, tblTable, consts.PostPlugin)
-	if response {
-		return result, detail, isNil, err
+		// 走 db 查询
+		result, detail, isNil, err = database.QueryResult(ctx, req, realNode, dbInfo.Addr, node.TransInfo)
+
+		rsp.IsNil = isNil
+		rsp.Detail = detail
+		rsp.Result = result
+		rsp.Error = err
+		return nil
+	}
+
+	err = chain.Handle(ctx, req, rsp, unit.Extend, dbExecFilter)
+	if err != nil {
+		return
 	}
 
 	return rsp.Result, rsp.Detail, rsp.IsNil, rsp.Error
 }
 
-// 插件编排处理
-func pluginsHandle(ctx context.Context, req *pf.Request, resp *pf.Response, appid uint64, extend types.Map,
-	tblTable *obj.TblTable, typ int8) (response bool, result interface{}, detail *proto.Detail, isNil bool, err error) {
-	tablePlugins := table.GetTablePlugins(tblTable.Id, typ)
+// 获取插件链
+func getPluginChain(ctx context.Context, appid uint64, tblTable *obj.TblTable) (Chain, error) {
+	tablePlugins := table.GetTablePlugins(tblTable.Id)
 
+	ret := Chain{}
 	for _, tablePlugin := range tablePlugins {
 		tblPlugin := table.GetPlugin(tablePlugin.PluginID)
 
@@ -192,125 +159,67 @@ func pluginsHandle(ctx context.Context, req *pf.Request, resp *pf.Response, appi
 				log.Error(ctx, errs.ErrPluginNotFound, e.Error())
 				continue
 			} else {
-				return true, nil, nil, false, e
+				return nil, e
 			}
 		}
 
-		funcName := fmt.Sprintf("%s_%d", tblPlugin.Func, tablePlugin.PluginVersion)
+		funcName := fmt.Sprintf("%s_%d", tblPlugin.Name, tablePlugin.PluginVersion)
 		f := plugin.Func[funcName]
 
 		if f == nil {
-			e := errs.NewPluginf(errs.ErrPluginFuncNotRegister, "plugin %s`s function %s "+
-				"version %d not register", tblPlugin.Name, tblPlugin.Func, tablePlugin.PluginVersion)
+			e := errs.NewPluginf(errs.ErrPluginFuncNotRegister, "plugin %s functions "+
+				"for version %d are not registered", tblPlugin.Name, tablePlugin.PluginVersion)
 
 			if tablePlugin.ScheduleConf.SkipError {
 				log.Error(ctx, errs.ErrPluginFuncNotRegister, e.Error())
 				continue
 			} else {
-				return true, nil, nil, false, e
+				return nil, e
 			}
 		}
 
-		if tablePlugin.ScheduleConf.Async { // 异步执行
-			go pluginAsyncHandle(ctx, req, resp, extend, f, tablePlugin)
-			continue
-		}
+		ret = append(ret, &PluginHandler{
+			appid: appid,
+			tp:    tablePlugin,
+			f:     f,
+		})
+	}
 
-		isResponse, e := pluginHandle(ctx, req, resp, extend, tablePlugin, f)
-		if e != nil {
-			if tablePlugin.ScheduleConf.SkipError {
-				log.Error(ctx, errs.ErrPluginNotFound, e.Error())
-			} else {
-				return true, nil, nil, false, getPluginError(e)
+	return ret, nil
+}
+
+type PluginHandler struct {
+	appid uint64
+	tp    *table.TblTablePlugin
+	f     plugin.Plugin
+}
+
+// Chain chains of plugin handler
+type Chain []*PluginHandler
+
+// Handle invokes every server side filters in the chain.
+func (c Chain) Handle(ctx context.Context, req *pf.Request, rsp *pf.Response, extend types.Map, next conf.HandleFunc) error {
+	for i := len(c) - 1; i >= 0; i-- {
+		curHandleFunc, curPlugin := next, c[i]
+		next = func(ctx context.Context) error {
+			e := pluginHandle(ctx, req, rsp, extend, curPlugin.tp, curPlugin.f, curHandleFunc)
+			if e != nil {
+				if curPlugin.tp.ScheduleConf.SkipError {
+					log.Error(ctx, errs.ErrPluginNotFound, e.Error())
+				} else {
+					return getPluginError(e)
+				}
 			}
-		}
 
-		if isResponse {
-			return true, resp.Result, resp.Detail, resp.IsNil, getPluginError(resp.Error)
+			return nil
 		}
 	}
 
-	return false, nil, nil, false, nil
-}
-
-func deferPluginsHandle(ctx context.Context,
-	req *pf.Request, resp *pf.Response, appid uint64, extend types.Map, tblTable *obj.TblTable) {
-	tablePlugins := table.GetTablePlugins(tblTable.Id, consts.DeferPlugin)
-
-	if tablePlugins == nil {
-		return
-	}
-
-	for _, tablePlugin := range tablePlugins {
-		tblPlugin := table.GetPlugin(tablePlugin.PluginID)
-
-		if tblPlugin == nil {
-			log.Error(ctx, errs.ErrPluginNotFound,
-				errs.Newf(errs.ErrPluginNotFound, "not find plugin : %d", tablePlugin.PluginID).Error())
-			continue
-		}
-
-		funcName := fmt.Sprintf("%s_%d", tblPlugin.Func, tablePlugin.PluginVersion)
-		f := plugin.Func[funcName]
-		if f == nil {
-			log.Error(ctx, errs.ErrPluginFuncNotRegister,
-				errs.Newf(errs.ErrPluginFuncNotRegister, "plugin %s`s function %s version %d not register",
-					tblPlugin.Name, tblPlugin.Func, tablePlugin.PluginVersion).Error())
-			continue
-		}
-
-		if tablePlugin.ScheduleConf.Async { // 异步执行
-			go pluginAsyncHandle(ctx, req, resp, extend, f, tablePlugin)
-			continue
-		}
-
-		_, err := pluginHandle(ctx, req, resp, extend, tablePlugin, f)
-		if err != nil {
-			log.Error(ctx, errs.ErrPluginNotFound, err.Error())
-		}
-	}
-}
-
-func pluginAsyncHandle(ctx context.Context, req *pf.Request, resp *pf.Response,
-	extend types.Map, f plugin.Plugin, tablePlugin *table.TblTablePlugin) {
-	asyncCtx, cancel, _ := codec.NewAsyncMessage(ctx,
-		time.Duration(tablePlugin.ScheduleConf.Timeout)*time.Millisecond)
-
-	defer cancel()
-
-	// 异步处理不允许改变入参
-	iReq, err := deepcopy.Anything(req)
-	if err != nil || iReq == nil {
-		log.Error(asyncCtx, errs.ErrPluginParamCopy, "plugin async handle deep copy request error: %v", err)
-		return
-	}
-
-	iResp, err := deepcopy.Anything(resp)
-	if err != nil || iResp == nil {
-		log.Error(asyncCtx, errs.ErrPluginParamCopy, "plugin async handle deep copy response error: %v", err)
-		return
-	}
-
-	iExtend, err := deepcopy.Anything(extend)
-	if err != nil {
-		log.Error(asyncCtx, errs.ErrPluginParamCopy, "plugin async handle deep copy extend error: %v", err)
-		return
-	}
-
-	_, err = pluginHandle(asyncCtx, iReq.(*pf.Request), iResp.(*pf.Response), iExtend.(types.Map), tablePlugin, f)
-	if err != nil {
-		e := getPluginError(err)
-		log.Error(asyncCtx, errs.Code(e), e.Error())
-	}
-
-	if resp.Error != nil {
-		e := getPluginError(resp.Error)
-		log.Error(asyncCtx, errs.Code(e), e.Error())
-	}
+	return next(ctx)
 }
 
 func pluginHandle(ctx context.Context, req *pf.Request, resp *pf.Response,
-	extend types.Map, tablePlugin *table.TblTablePlugin, f plugin.Plugin) (response bool, err error) {
+	extend types.Map, tablePlugin *table.TblTablePlugin, f plugin.Plugin, next conf.HandleFunc) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			err = errs.NewPluginf(errs.ErrPanic,
@@ -323,7 +232,7 @@ func pluginHandle(ctx context.Context, req *pf.Request, resp *pf.Response,
 		}
 	}()
 
-	return f.Handle(ctx, req, resp, extend, tablePlugin.Conf)
+	return f.Handle(ctx, req, resp, extend, tablePlugin.Conf, next)
 }
 
 func getPluginError(err error) error {
@@ -331,7 +240,7 @@ func getPluginError(err error) error {
 		return nil
 	}
 
-	if errs.Type(err) == errs.ETypePlugin {
+	if errs.Type(err) == errs.ETypePlugin || errs.Type(err) == errs.ETypeDatabase {
 		return err
 	}
 
@@ -343,3 +252,4 @@ func getPluginError(err error) error {
 
 	return e
 }
+

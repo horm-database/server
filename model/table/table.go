@@ -15,8 +15,6 @@
 package table
 
 import (
-	"errors"
-	"fmt"
 	"strings"
 	"sync"
 
@@ -25,17 +23,14 @@ import (
 	"github.com/horm-database/common/log"
 	"github.com/horm-database/common/util"
 	"github.com/horm-database/orm/obj"
-	"github.com/horm-database/server/consts"
 	"github.com/horm-database/server/plugin/conf"
 	sc "github.com/horm-database/server/srv/codec"
 )
 
 var (
-	pluginLock        = new(sync.RWMutex)
-	plugin            = map[int]*TblPlugin{}
-	tablePrePlugins   = map[int][]*TblTablePlugin{}
-	tablePostPlugins  = map[int][]*TblTablePlugin{}
-	tableDeferPlugins = map[int][]*TblTablePlugin{}
+	pluginLock   = new(sync.RWMutex)
+	plugin       = map[int]*TblPlugin{}
+	tablePlugins = map[int][]*TblTablePlugin{}
 
 	dbLock     = new(sync.RWMutex)
 	dbMap      = map[int]*obj.TblDB{}
@@ -128,18 +123,10 @@ func GetAppInfo(appid uint64) *AppInfo {
 	return appInfoMap[appid]
 }
 
-func GetTablePlugins(tableID int, typ int8) []*TblTablePlugin {
+func GetTablePlugins(tableID int) []*TblTablePlugin {
 	pluginLock.RLock()
 	defer pluginLock.RUnlock()
-
-	switch typ {
-	case consts.PrePlugin:
-		return tablePrePlugins[tableID]
-	case consts.PostPlugin:
-		return tablePostPlugins[tableID]
-	default:
-		return tableDeferPlugins[tableID]
-	}
+	return tablePlugins[tableID]
 }
 
 func GetPlugin(id int) *TblPlugin {
@@ -254,41 +241,15 @@ func InitTablePlugin(tableFitlers []*TblTablePlugin) error {
 			}
 		}
 
-		switch tf.Type {
-		case consts.PrePlugin:
-			tablePrePlugins[tf.TableId] = append(tablePrePlugins[tf.TableId], tf)
-		case consts.PostPlugin:
-			tablePostPlugins[tf.TableId] = append(tablePostPlugins[tf.TableId], tf)
-		case consts.DeferPlugin:
-			tableDeferPlugins[tf.TableId] = append(tableDeferPlugins[tf.TableId], tf)
-		default:
-			return errors.New(
-				fmt.Sprintf("not find plugin type: %d, table_id=%d and plugin_id=%d", tf.Type, tf.TableId, tf.PluginID))
-		}
+		tablePlugins[tf.TableId] = append(tablePlugins[tf.TableId], tf)
 	}
 
-	for k := range tablePrePlugins {
-		sortedTablePrePlugins, err := SortTablePlugins("table pre-plugin", tablePrePlugins[k])
+	for k := range tablePlugins {
+		sortedTablePlugins, err := SortTablePlugins(tablePlugins[k])
 		if err != nil {
 			return err
 		}
-		tablePrePlugins[k] = sortedTablePrePlugins
-	}
-
-	for k := range tablePostPlugins {
-		sortedTablePostPlugins, err := SortTablePlugins("table post-plugin", tablePostPlugins[k])
-		if err != nil {
-			return err
-		}
-		tablePostPlugins[k] = sortedTablePostPlugins
-	}
-
-	for k := range tableDeferPlugins {
-		sortedTableDeferPlugins, err := SortTablePlugins("table defer-plugin", tableDeferPlugins[k])
-		if err != nil {
-			return err
-		}
-		tableDeferPlugins[k] = sortedTableDeferPlugins
+		tablePlugins[k] = sortedTablePlugins
 	}
 
 	return nil
@@ -373,7 +334,7 @@ func getPluginConfig(pluginID, pluginVersion int, config string) map[string]inte
 	return result
 }
 
-func SortTablePlugins(typ string, tablePlugins []*TblTablePlugin) ([]*TblTablePlugin, error) {
+func SortTablePlugins(tablePlugins []*TblTablePlugin) ([]*TblTablePlugin, error) {
 	if len(tablePlugins) == 0 {
 		return []*TblTablePlugin{}, nil
 	}
@@ -389,7 +350,7 @@ func SortTablePlugins(typ string, tablePlugins []*TblTablePlugin) ([]*TblTablePl
 
 	if head == nil {
 		return nil, errs.Newf(errs.ErrPrefixPluginNotFount,
-			"table_id %d not find head of %s", tablePlugins[0].TableId, typ)
+			"table_id %d not find head of plugin", tablePlugins[0].TableId)
 	}
 
 	ret := []*TblTablePlugin{}
@@ -399,8 +360,8 @@ func SortTablePlugins(typ string, tablePlugins []*TblTablePlugin) ([]*TblTablePl
 	for i := 0; i < len(tablePlugins)-1; i++ {
 		frontTablePlugin := findFrontTablePlugin(currentTablePlugin, tablePlugins)
 		if frontTablePlugin == nil {
-			return nil, errs.Newf(errs.ErrPrefixPluginNotFount, "%s %d not find prefix table_plugin=%d",
-				typ, currentTablePlugin.Id, currentTablePlugin.Front)
+			return nil, errs.Newf(errs.ErrPrefixPluginNotFount, "plugin %d not find prefix table_plugin=%d",
+				currentTablePlugin.Id, currentTablePlugin.Front)
 		}
 
 		currentTablePlugin = frontTablePlugin
@@ -412,7 +373,7 @@ func SortTablePlugins(typ string, tablePlugins []*TblTablePlugin) ([]*TblTablePl
 
 func findFrontTablePlugin(currentTablePlugin *TblTablePlugin, tablePlugins []*TblTablePlugin) *TblTablePlugin {
 	for _, tablePlugin := range tablePlugins {
-		if currentTablePlugin.TableId == tablePlugin.Front {
+		if currentTablePlugin.Id == tablePlugin.Front {
 			return tablePlugin
 		}
 	}
