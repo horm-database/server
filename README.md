@@ -24,11 +24,8 @@ const ( // 支持的服务类型
     DBTypeFunction   DBType = 60 // 函数逻辑
 )
 ```
-<img width="25540" height="18062" alt="统一接入服务_副本" src="https://github.com/user-attachments/assets/e2036406-d34c-4a73-9556-98d6e351cdbd" />
 
-
-# 目录
-[TOC]
+<img width="1993" height="1349" alt="sever" src="https://github.com/user-attachments/assets/1f25bcc5-0666-40cf-9b46-2aac81336066" />
 
 #  示例表
 建表语句：
