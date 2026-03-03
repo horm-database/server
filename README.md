@@ -8,6 +8,8 @@
 * 高效的异常定位与解决方案，超时重试、失败手动重试功能，数据大盘可以用于 sql 性能分析，优化，可以对错误进行分析，数据暴增、快速定位暴增接入应用。
 * 支持 GO、NODE、JAVA、C++、Python 等客户端的 SDK 接入。
 
+[整体介绍](https://github.com/horm-database/doc/blob/master/server_access_platform.pdf)
+
 ```go
 const ( // 支持的服务类型
     DBTypeElastic    DBType = 1  // elastic search
